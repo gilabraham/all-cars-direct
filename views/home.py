@@ -11,9 +11,14 @@ from lib.icons import body_icon_html, icon, make_icon_html
 from lib.ui import card_html
 
 # Force navigation in the top frame so Streamlit Cloud's iframe wrapper
-# updates the visible URL in the same tab. See lib/styles.py top_nav for the
-# full explanation.
-NAV_ONCLICK = "if(window.top){window.top.location.href=this.href;return false;}"
+# updates the visible URL in the same tab. Rendered as ``<span role=link>``
+# (not ``<a>``) so Streamlit doesn't silently add target=_blank. See
+# lib/styles.py top_nav for the full explanation.
+NAV_GO = (
+    "var u=this.dataset.href;"
+    "try{(window.top||window).location.href=u;}"
+    "catch(e){window.location.href=u;}"
+)
 
 # Toast confirming a just-submitted deal request (set inside the detail dialog).
 if "req_toast" in st.session_state:
@@ -33,9 +38,10 @@ st.markdown(
       <p>Browse {active_deals or 'hundreds of'} curated lease, finance, and cash offers
          from trusted dealers. Compare side-by-side. Lock in pricing in minutes.</p>
       <div class='ll-hero-ctas'>
-        <a class='ll-hero-cta primary' href='/deals' onclick="{NAV_ONCLICK}">
+        <span class='ll-hero-cta primary' role='link' tabindex='0'
+              data-href='/deals' onclick="{NAV_GO}">
           Browse all deals {icon('arrow-right', 16, '#ffffff')}
-        </a>
+        </span>
       </div>
       <div class='ll-hero-trust'>
         <span>{icon('check-circle', 14, '#7aa9ff')} Verified dealers</span>
@@ -71,11 +77,12 @@ if tiles:
     html = "<div class='ll-tiles'>"
     for t in tiles:
         html += (
-            f"<a class='ll-tile' href='{t['href']}' onclick='{NAV_ONCLICK}'>"
+            f"<span class='ll-tile' role='link' tabindex='0' "
+            f"data-href='{t['href']}' onclick='{NAV_GO}'>"
             f"<div class='ll-tile-ic'>{t['icon_html']}</div>"
             f"<div class='ll-tile-lab'>{t['label']}</div>"
             f"<div class='ll-tile-ct'>{t['count']} deal{'s' if t['count'] != 1 else ''}</div>"
-            f"</a>"
+            f"</span>"
         )
     html += "</div>"
     st.markdown(html, unsafe_allow_html=True)
@@ -139,7 +146,8 @@ if make_counts:
                 f"{initials}</div>"
             )
         tiles_html += (
-            f"<a class='ll-tile' href='/deals?make={quote_plus(make_name)}' onclick='{NAV_ONCLICK}'>"
+            f"<span class='ll-tile' role='link' tabindex='0' "
+            f"data-href='/deals?make={quote_plus(make_name)}' onclick='{NAV_GO}'>"
             f"<div class='ll-tile-ic'>{logo}</div>"
             f"<div class='ll-tile-lab'>{make_name}</div>"
             f"<div class='ll-tile-ct'>{count} deal{'s' if count != 1 else ''}</div>"

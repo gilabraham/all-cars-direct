@@ -83,7 +83,8 @@ section[data-testid="stSidebar"] { padding-top: 80px; }
   display: flex; align-items: center; gap: 18px;
   height: 70px; max-width: 1600px; margin: 0 auto; padding: 0 28px;
 }
-.ll-brand-link { display: flex; align-items: center; text-decoration: none; flex-shrink: 0; }
+.ll-brand-link { display: flex; align-items: center; text-decoration: none; flex-shrink: 0;
+  cursor: pointer; user-select: none; }
 .ll-brand-link svg { height: 46px; width: auto; display: block; }
 .ll-brand-link span { color: var(--ll-navy) !important; font-weight: 800; font-size: 20px; letter-spacing: 1px; }
 .ll-nav-right { display: flex; align-items: center; gap: 4px; margin-left: auto; }
@@ -98,6 +99,7 @@ section[data-testid="stSidebar"] { padding-top: 80px; }
   height: 70px; display: flex; align-items: center;
   padding: 0 14px; border-bottom: 3px solid transparent;
   transition: color .15s, border-color .15s; white-space: nowrap;
+  cursor: pointer; user-select: none;
 }
 .ll-nav .ll-navlink:hover { color: var(--ll-primary) !important; }
 .ll-nav .ll-navlink.active {
@@ -158,7 +160,8 @@ section[data-testid="stSidebar"] { padding-top: 80px; }
 .ll-subnav .ll-subnavlink:visited {
   color: var(--ll-muted) !important; text-decoration:none !important; font-weight:650;
   font-size:13px; padding:6px 12px; border-radius:8px; text-transform:uppercase;
-  letter-spacing:.4px; transition: color .15s, background .15s; }
+  letter-spacing:.4px; transition: color .15s, background .15s;
+  cursor: pointer; user-select: none; }
 .ll-subnav .ll-subnavlink:hover { color: var(--ll-ink) !important; background:#ffffff; }
 .ll-subnav .ll-subnavlink.active { color:#fff !important; background:var(--ll-primary); }
 .ll-subnav .ll-subnavlink.ll-logout { color:#dc2626 !important; }
@@ -836,6 +839,7 @@ footer {visibility:hidden;}
   padding: 12px 22px; border-radius: 999px;
   font-size: 15px; font-weight: 650; text-decoration: none !important;
   transition: transform .12s, background .12s, border-color .12s, box-shadow .12s;
+  cursor: pointer; user-select: none;
 }
 .ll-hero-cta.primary {
   background: var(--ll-primary); color: #fff !important;
@@ -879,6 +883,7 @@ footer {visibility:hidden;}
   border: 1px solid var(--ll-border); border-radius: 14px;
   transition: transform .12s, border-color .12s, box-shadow .12s;
   min-height: 130px;
+  cursor: pointer; user-select: none;
 }
 .ll-tile:hover {
   transform: translateY(-2px);
@@ -1079,25 +1084,36 @@ def top_nav(active_path: str = ""):
               ("how-it-works", "How It Works"),
               ("about", "About")]
 
-    # Streamlit Cloud serves apps inside an iframe wrapper on .streamlit.app
-    # subdomains. ``target='_self'`` navigates the iframe (URL bar stays
-    # stale); ``onclick="if(window.top){window.top.location.href=this.href;return false;}"`` works for URL updates but the iframe sandbox
-    # opens a new tab as a fallback. JS-driven navigation via ``window.top``
-    # gives us a same-tab navigation that updates the visible URL.
-    nav_onclick = "if(window.top){window.top.location.href=this.href;return false;}"
+    # Render nav items as <span role=link> instead of <a>. Streamlit silently
+    # adds target="_blank" to anchor tags in user-injected HTML (security
+    # measure), which forced every nav click to open a new tab. Spans avoid
+    # that. The onclick handler navigates the top frame so the URL bar
+    # updates even when Streamlit Cloud iframes the app.
+    nav_go = (
+        "var u=this.dataset.href;"
+        "try{(window.top||window).location.href=u;}"
+        "catch(e){window.location.href=u;}"
+    )
+    nav_kbd = "if(event.key==='Enter'||event.key===' '){{{}}}".format(nav_go)
 
     items = ""
     for path, label in public:
         cls = "ll-navlink active" if path == active_path else "ll-navlink"
         href = "/" if path == "" else f"/{path}"
-        items += f"<a class='{cls}' href='{href}' onclick=\"{nav_onclick}\">{label}</a>"
+        items += (
+            f"<span class='{cls}' role='link' tabindex='0' "
+            f"data-href='{href}' onclick=\"{nav_go}\" "
+            f"onkeydown=\"{nav_kbd}\">{label}</span>"
+        )
 
     # Official primary horizontal logo (navy + blue, sits on the white header).
     brand = brand_svg("acd-primary-horizontal.svg") or (logo(36) + "<span>ALL CARS DIRECT</span>")
 
     html = (
         f"<div class='ll-nav-wrap'><div class='ll-nav'>"
-        f"<a class='ll-brand-link' href='/' onclick=\"{nav_onclick}\">{brand}</a>"
+        f"<span class='ll-brand-link' role='link' tabindex='0' "
+        f"data-href='/' onclick=\"{nav_go}\" onkeydown=\"{nav_kbd}\">"
+        f"{brand}</span>"
         f"<div class='ll-nav-right'>"
         f"<nav class='ll-navlinks'>{items}</nav>"
         f"<a class='ll-nav-cta' href='mailto:info@allcarsdirectllc.com'>Contact us</a>"
@@ -1147,15 +1163,27 @@ def admin_subnav(active_path: str = ""):
     admin = [("admin", "Dashboard"), ("admin-requests", "Requests"),
              ("admin-listings", "Manage"), ("admin-upload", "Upload"),
              ("admin-sources", "Sources")]
-    # Same top-frame navigation trick as the main nav — see ``top_nav``.
-    sub_onclick = "if(window.top){window.top.location.href=this.href;return false;}"
+    # Same span-based navigation trick as the main nav — see ``top_nav``.
+    nav_go = (
+        "var u=this.dataset.href;"
+        "try{(window.top||window).location.href=u;}"
+        "catch(e){window.location.href=u;}"
+    )
+    nav_kbd = "if(event.key==='Enter'||event.key===' '){{{}}}".format(nav_go)
 
-    items = ""
-    for path, label in admin:
+    def _link(path, label, extra_cls=""):
         cls = "ll-subnavlink active" if path == active_path else "ll-subnavlink"
-        items += f"<a class='{cls}' href='/{path}' onclick=\"{sub_onclick}\">{label}</a>"
+        if extra_cls:
+            cls += f" {extra_cls}"
+        return (
+            f"<span class='{cls}' role='link' tabindex='0' "
+            f"data-href='/{path}' onclick=\"{nav_go}\" "
+            f"onkeydown=\"{nav_kbd}\">{label}</span>"
+        )
+
+    items = "".join(_link(p, lbl) for p, lbl in admin)
     if not DISABLE_AUTH:
-        items += f"<a class='ll-subnavlink ll-logout' href='/?logout=1' onclick=\"{sub_onclick}\">Log out</a>"
+        items += _link("?logout=1", "Log out", "ll-logout")
 
     html = (
         f"<div class='ll-subnav'><span class='ll-subnav-label'>ADMIN</span>"
