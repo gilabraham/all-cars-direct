@@ -2,6 +2,8 @@
 any page (browse, home top-deals, etc.)."""
 from __future__ import annotations
 
+import math
+
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -11,8 +13,20 @@ from lib.images import image_src
 from lib.ui import deal_type_color, money, num, pct, title_for
 
 
+def _has_value(value) -> bool:
+    """True when ``value`` is something meaningful. Treats NaN as missing —
+    pandas leaves numeric NaN in optional columns (e.g. ``term_months`` is
+    NaN on Cash deals), and ``if NaN`` is truthy, which bites ``int(NaN)``.
+    """
+    if value is None or value == "" or value == "—":
+        return False
+    if isinstance(value, float) and math.isnan(value):
+        return False
+    return True
+
+
 def _fmt_or_dash(value) -> str:
-    return value if value not in (None, "", "—") else "—"
+    return value if _has_value(value) else "—"
 
 
 _SCROLL_RESET_JS = """
@@ -104,9 +118,9 @@ def show_detail(row: dict):
             secondary_bits = []
             if eff is not None:
                 secondary_bits.append(f"{money(eff)} effective")
-            if row.get("term_months"):
+            if _has_value(row.get("term_months")):
                 secondary_bits.append(f"{int(row['term_months'])} mo")
-            if row.get("down_payment") is not None:
+            if _has_value(row.get("down_payment")):
                 secondary_bits.append(f"{money(row.get('down_payment'))} due")
         secondary = "  ·  ".join(secondary_bits) if secondary_bits else ""
 
@@ -143,7 +157,7 @@ def show_detail(row: dict):
         ("% of MSRP / mo", pct(pct_msrp)),
     ]
     terms_specs = [
-        ("Term", f"{int(row['term_months'])} months" if row.get("term_months") else "—"),
+        ("Term", f"{int(row['term_months'])} months" if _has_value(row.get("term_months")) else "—"),
         ("Annual mileage", num(row.get("annual_mileage"))),
         ("Due at signing", money(row.get("down_payment"))),
         ("Money factor",
