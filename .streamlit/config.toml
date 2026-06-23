@@ -1,0 +1,16 @@
+[theme]
+primaryColor = "#2E8BFF"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f5f7fb"
+textColor = "#1c2333"
+font = "sans serif"
+
+[server]
+# 8501 is Streamlit's default but is often taken by other local apps,
+# so All Cars Direct uses 8530 to avoid collisions.
+port = 8530
+runOnSave = true
+headless = true
+
+[browser]
+gatherUsageStats = false
