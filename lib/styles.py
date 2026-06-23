@@ -1083,17 +1083,17 @@ def top_nav(active_path: str = ""):
     for path, label in public:
         cls = "ll-navlink active" if path == active_path else "ll-navlink"
         href = "/" if path == "" else f"/{path}"
-        items += f"<a class='{cls}' href='{href}' target='_self'>{label}</a>"
+        items += f"<a class='{cls}' href='{href}' target='_top'>{label}</a>"
 
     # Official primary horizontal logo (navy + blue, sits on the white header).
     brand = brand_svg("acd-primary-horizontal.svg") or (logo(36) + "<span>ALL CARS DIRECT</span>")
 
     html = (
         f"<div class='ll-nav-wrap'><div class='ll-nav'>"
-        f"<a class='ll-brand-link' href='/' target='_self'>{brand}</a>"
+        f"<a class='ll-brand-link' href='/' target='_top'>{brand}</a>"
         f"<div class='ll-nav-right'>"
         f"<nav class='ll-navlinks'>{items}</nav>"
-        f"<a class='ll-nav-cta' href='mailto:info@allcarsdirectllc.com' target='_self'>Contact us</a>"
+        f"<a class='ll-nav-cta' href='mailto:info@allcarsdirectllc.com' target='_top'>Contact us</a>"
         f"</div>"
         f"</div></div>"
     )
@@ -1143,9 +1143,9 @@ def admin_subnav(active_path: str = ""):
     items = ""
     for path, label in admin:
         cls = "ll-subnavlink active" if path == active_path else "ll-subnavlink"
-        items += f"<a class='{cls}' href='/{path}' target='_self'>{label}</a>"
+        items += f"<a class='{cls}' href='/{path}' target='_top'>{label}</a>"
     if not DISABLE_AUTH:
-        items += "<a class='ll-subnavlink ll-logout' href='/?logout=1' target='_self'>Log out</a>"
+        items += "<a class='ll-subnavlink ll-logout' href='/?logout=1' target='_top'>Log out</a>"
 
     html = (
         f"<div class='ll-subnav'><span class='ll-subnav-label'>ADMIN</span>"

@@ -14,10 +14,10 @@ st.markdown(
       <p>From browsing to driving in under a week. Four simple steps, zero
          haggling, and complete number transparency the whole way through.</p>
       <div class='ll-hero-ctas'>
-        <a class='ll-hero-cta primary' href='/deals' target='_self'>
+        <a class='ll-hero-cta primary' href='/deals' target='_top'>
           Browse all deals {icon('arrow-right', 16, '#ffffff')}
         </a>
-        <a class='ll-hero-cta ghost' href='mailto:info@allcarsdirectllc.com' target='_self'>
+        <a class='ll-hero-cta ghost' href='mailto:info@allcarsdirectllc.com' target='_top'>
           Talk to a specialist
         </a>
       </div>
@@ -77,7 +77,7 @@ st.markdown(
     <section class='ll-hiw-cta'>
       <h2>Ready to find your deal?</h2>
       <p>Browse hundreds of pre-negotiated offers from trusted dealers.</p>
-      <a class='ll-hero-cta primary' href='/deals' target='_self'>
+      <a class='ll-hero-cta primary' href='/deals' target='_top'>
         Browse all deals {icon('arrow-right', 16, '#ffffff')}
       </a>
     </section>

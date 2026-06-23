@@ -28,7 +28,7 @@ st.markdown(
       <p>Browse {active_deals or 'hundreds of'} curated lease, finance, and cash offers
          from trusted dealers. Compare side-by-side. Lock in pricing in minutes.</p>
       <div class='ll-hero-ctas'>
-        <a class='ll-hero-cta primary' href='/deals' target='_self'>
+        <a class='ll-hero-cta primary' href='/deals' target='_top'>
           Browse all deals {icon('arrow-right', 16, '#ffffff')}
         </a>
       </div>
@@ -66,7 +66,7 @@ if tiles:
     html = "<div class='ll-tiles'>"
     for t in tiles:
         html += (
-            f"<a class='ll-tile' href='{t['href']}' target='_self'>"
+            f"<a class='ll-tile' href='{t['href']}' target='_top'>"
             f"<div class='ll-tile-ic'>{t['icon_html']}</div>"
             f"<div class='ll-tile-lab'>{t['label']}</div>"
             f"<div class='ll-tile-ct'>{t['count']} deal{'s' if t['count'] != 1 else ''}</div>"
@@ -134,7 +134,7 @@ if make_counts:
                 f"{initials}</div>"
             )
         tiles_html += (
-            f"<a class='ll-tile' href='/deals?make={quote_plus(make_name)}' target='_self'>"
+            f"<a class='ll-tile' href='/deals?make={quote_plus(make_name)}' target='_top'>"
             f"<div class='ll-tile-ic'>{logo}</div>"
             f"<div class='ll-tile-lab'>{make_name}</div>"
             f"<div class='ll-tile-ct'>{count} deal{'s' if count != 1 else ''}</div>"
