@@ -1079,21 +1079,28 @@ def top_nav(active_path: str = ""):
               ("how-it-works", "How It Works"),
               ("about", "About")]
 
+    # Streamlit Cloud serves apps inside an iframe wrapper on .streamlit.app
+    # subdomains. ``target='_self'`` navigates the iframe (URL bar stays
+    # stale); ``onclick="if(window.top){window.top.location.href=this.href;return false;}"`` works for URL updates but the iframe sandbox
+    # opens a new tab as a fallback. JS-driven navigation via ``window.top``
+    # gives us a same-tab navigation that updates the visible URL.
+    nav_onclick = "if(window.top){window.top.location.href=this.href;return false;}"
+
     items = ""
     for path, label in public:
         cls = "ll-navlink active" if path == active_path else "ll-navlink"
         href = "/" if path == "" else f"/{path}"
-        items += f"<a class='{cls}' href='{href}' target='_top'>{label}</a>"
+        items += f"<a class='{cls}' href='{href}' onclick=\"{nav_onclick}\">{label}</a>"
 
     # Official primary horizontal logo (navy + blue, sits on the white header).
     brand = brand_svg("acd-primary-horizontal.svg") or (logo(36) + "<span>ALL CARS DIRECT</span>")
 
     html = (
         f"<div class='ll-nav-wrap'><div class='ll-nav'>"
-        f"<a class='ll-brand-link' href='/' target='_top'>{brand}</a>"
+        f"<a class='ll-brand-link' href='/' onclick=\"{nav_onclick}\">{brand}</a>"
         f"<div class='ll-nav-right'>"
         f"<nav class='ll-navlinks'>{items}</nav>"
-        f"<a class='ll-nav-cta' href='mailto:info@allcarsdirectllc.com' target='_top'>Contact us</a>"
+        f"<a class='ll-nav-cta' href='mailto:info@allcarsdirectllc.com'>Contact us</a>"
         f"</div>"
         f"</div></div>"
     )
@@ -1140,12 +1147,15 @@ def admin_subnav(active_path: str = ""):
     admin = [("admin", "Dashboard"), ("admin-requests", "Requests"),
              ("admin-listings", "Manage"), ("admin-upload", "Upload"),
              ("admin-sources", "Sources")]
+    # Same top-frame navigation trick as the main nav — see ``top_nav``.
+    sub_onclick = "if(window.top){window.top.location.href=this.href;return false;}"
+
     items = ""
     for path, label in admin:
         cls = "ll-subnavlink active" if path == active_path else "ll-subnavlink"
-        items += f"<a class='{cls}' href='/{path}' target='_top'>{label}</a>"
+        items += f"<a class='{cls}' href='/{path}' onclick=\"{sub_onclick}\">{label}</a>"
     if not DISABLE_AUTH:
-        items += "<a class='ll-subnavlink ll-logout' href='/?logout=1' target='_top'>Log out</a>"
+        items += f"<a class='ll-subnavlink ll-logout' href='/?logout=1' onclick=\"{sub_onclick}\">Log out</a>"
 
     html = (
         f"<div class='ll-subnav'><span class='ll-subnav-label'>ADMIN</span>"

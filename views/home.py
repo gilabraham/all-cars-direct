@@ -10,6 +10,11 @@ from lib.deal_detail import show_detail
 from lib.icons import body_icon_html, icon, make_icon_html
 from lib.ui import card_html
 
+# Force navigation in the top frame so Streamlit Cloud's iframe wrapper
+# updates the visible URL in the same tab. See lib/styles.py top_nav for the
+# full explanation.
+NAV_ONCLICK = "if(window.top){window.top.location.href=this.href;return false;}"
+
 # Toast confirming a just-submitted deal request (set inside the detail dialog).
 if "req_toast" in st.session_state:
     st.toast(st.session_state.pop("req_toast"), icon=":material/check_circle:")
@@ -28,7 +33,7 @@ st.markdown(
       <p>Browse {active_deals or 'hundreds of'} curated lease, finance, and cash offers
          from trusted dealers. Compare side-by-side. Lock in pricing in minutes.</p>
       <div class='ll-hero-ctas'>
-        <a class='ll-hero-cta primary' href='/deals' target='_top'>
+        <a class='ll-hero-cta primary' href='/deals' onclick="{NAV_ONCLICK}">
           Browse all deals {icon('arrow-right', 16, '#ffffff')}
         </a>
       </div>
@@ -66,7 +71,7 @@ if tiles:
     html = "<div class='ll-tiles'>"
     for t in tiles:
         html += (
-            f"<a class='ll-tile' href='{t['href']}' target='_top'>"
+            f"<a class='ll-tile' href='{t['href']}' onclick='{NAV_ONCLICK}'>"
             f"<div class='ll-tile-ic'>{t['icon_html']}</div>"
             f"<div class='ll-tile-lab'>{t['label']}</div>"
             f"<div class='ll-tile-ct'>{t['count']} deal{'s' if t['count'] != 1 else ''}</div>"
@@ -134,7 +139,7 @@ if make_counts:
                 f"{initials}</div>"
             )
         tiles_html += (
-            f"<a class='ll-tile' href='/deals?make={quote_plus(make_name)}' target='_top'>"
+            f"<a class='ll-tile' href='/deals?make={quote_plus(make_name)}' onclick='{NAV_ONCLICK}'>"
             f"<div class='ll-tile-ic'>{logo}</div>"
             f"<div class='ll-tile-lab'>{make_name}</div>"
             f"<div class='ll-tile-ct'>{count} deal{'s' if count != 1 else ''}</div>"
