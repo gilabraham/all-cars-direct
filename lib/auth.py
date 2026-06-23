@@ -1,6 +1,8 @@
 """Lightweight admin password gate for the back-office pages."""
 from __future__ import annotations
 
+import os
+
 import streamlit as st
 
 # Admin login gate. When True every back-office page is accessible without a
@@ -23,6 +25,11 @@ def is_authed() -> bool:
 
 
 def _expected_password() -> str:
+    # Prefer env var (Fly / Render set it via `fly secrets set admin_password=…`),
+    # then Streamlit secrets (local dev / Streamlit Cloud), then a weak default.
+    env = os.environ.get("ADMIN_PASSWORD") or os.environ.get("admin_password")
+    if env:
+        return env
     try:
         return st.secrets["admin_password"]  # type: ignore[index]
     except Exception:

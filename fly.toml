@@ -1,0 +1,43 @@
+# Fly.io app config for All Cars Direct.
+# After editing, deploy with: fly deploy
+
+app = "all-cars-direct"
+primary_region = "iad"   # Ashburn, VA — closest to most US East dealers.
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PYTHONUNBUFFERED = "1"
+  ACD_DATA_DIR = "/data"
+
+# Persistent SQLite DB. The volume must be created once per machine with:
+#   fly volumes create acd_data --region iad --size 1
+[mounts]
+  source = "acd_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"    # idle apps stop to save credits
+  auto_start_machines = true
+  min_machines_running = 0       # bump to 1 for instant cold starts
+  processes = ["app"]
+
+  # Streamlit's WebSocket needs HTTP/1.1 + sticky sessions.
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 200
+    soft_limit = 150
+
+[[http_service.checks]]
+  grace_period = "30s"
+  interval = "15s"
+  method = "GET"
+  timeout = "5s"
+  path = "/_stcore/health"       # Streamlit's built-in health endpoint
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

@@ -1,0 +1,23 @@
+# Don't bake local dev files into the image.
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Local SQLite + secrets stay out of the image (volume + Fly secrets supply them).
+data/
+.streamlit/secrets.toml
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log

@@ -1,6 +1,7 @@
 """SQLite data layer for All Cars Direct listings."""
 from __future__ import annotations
 
+import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -8,7 +9,12 @@ from pathlib import Path
 
 import pandas as pd
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+# Default to a project-local data dir for dev; let deploys override via the
+# ACD_DATA_DIR env var (Fly mounts a persistent volume at /data).
+DATA_DIR = Path(
+    os.environ.get("ACD_DATA_DIR")
+    or Path(__file__).resolve().parent.parent / "data"
+)
 DB_PATH = DATA_DIR / "deals.db"
 
 # Canonical column order for listings (excludes id / timestamps).
