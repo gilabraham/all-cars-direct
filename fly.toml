@@ -11,7 +11,7 @@ primary_region = "iad"   # Ashburn, VA — closest to most US East dealers.
   PYTHONUNBUFFERED = "1"
   ACD_DATA_DIR = "/data"
 
-# Persistent SQLite DB. The volume must be created once per machine with:
+# Persistent SQLite DB. Volume must be created once with:
 #   fly volumes create acd_data --region iad --size 1
 [mounts]
   source = "acd_data"
@@ -40,4 +40,4 @@ primary_region = "iad"   # Ashburn, VA — closest to most US East dealers.
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "1gb"

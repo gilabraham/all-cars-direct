@@ -28,5 +28,6 @@ COPY . .
 
 EXPOSE 8080
 
-# Ensure the data dir exists before Streamlit boots (volume mounts after).
-CMD ["sh", "-c", "mkdir -p /data && streamlit run streamlit_app.py"]
+# Fly mounts the volume at /data before the container starts, so no mkdir
+# needed. Use exec-form CMD so signals reach Streamlit cleanly.
+CMD ["streamlit", "run", "streamlit_app.py"]
