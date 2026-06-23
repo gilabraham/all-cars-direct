@@ -6,17 +6,6 @@ import streamlit as st
 from lib import db, scoring
 from lib.icons import icon
 
-# Span-based nav so Streamlit doesn't silently add target=_blank to <a>
-# tags in unsafe_allow_html markup, and an onclick that navigates the top
-# frame so Streamlit Cloud's iframe wrapper updates the visible URL in the
-# same tab. See lib/styles.py top_nav for the full explanation.
-NAV_GO = (
-    "var u=this.dataset.href;"
-    "try{(window.top||window).location.href=u;}"
-    "catch(e){window.location.href=u;}"
-)
-
-
 # ---------------------------------------------------------------- live snapshot
 adf = scoring.enrich(db.fetch_df(active_only=True))
 live_deals = len(adf)
@@ -36,10 +25,9 @@ st.markdown(
          getting a car. We surface curated lease, finance, and cash offers —
          and show the full math behind every single one.</p>
       <div class='ll-hero-ctas'>
-        <span class='ll-hero-cta primary' role='link' tabindex='0'
-              data-href='/deals' onclick="{NAV_GO}">
+        <a class='ll-hero-cta primary' href='/deals' target='_self'>
           Browse all deals {icon('arrow-right', 16, '#ffffff')}
-        </span>
+        </a>
         <a class='ll-hero-cta ghost' href='mailto:info@allcarsdirectllc.com'>
           Talk to a specialist
         </a>
@@ -143,10 +131,9 @@ st.markdown(
     <section class='ll-hiw-cta'>
       <h2>Ready to find your deal?</h2>
       <p>Browse hundreds of pre-negotiated offers from trusted dealers.</p>
-      <span class='ll-hero-cta primary' role='link' tabindex='0'
-            data-href='/deals' onclick="{NAV_GO}">
+      <a class='ll-hero-cta primary' href='/deals' target='_self'>
         Browse all deals {icon('arrow-right', 16, '#ffffff')}
-      </span>
+      </a>
     </section>
     """,
     unsafe_allow_html=True,

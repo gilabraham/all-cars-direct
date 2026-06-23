@@ -5,15 +5,6 @@ import streamlit as st
 
 from lib.icons import icon
 
-# Span-based nav so Streamlit doesn't silently add target=_blank to <a>
-# tags. See lib/styles.py top_nav for the full explanation.
-NAV_GO = (
-    "var u=this.dataset.href;"
-    "try{(window.top||window).location.href=u;}"
-    "catch(e){window.location.href=u;}"
-)
-
-
 # ---------------------------------------------------------------- hero panel
 st.markdown(
     f"""
@@ -23,10 +14,9 @@ st.markdown(
       <p>From browsing to driving in under a week. Four simple steps, zero
          haggling, and complete number transparency the whole way through.</p>
       <div class='ll-hero-ctas'>
-        <span class='ll-hero-cta primary' role='link' tabindex='0'
-              data-href='/deals' onclick="{NAV_GO}">
+        <a class='ll-hero-cta primary' href='/deals' target='_self'>
           Browse all deals {icon('arrow-right', 16, '#ffffff')}
-        </span>
+        </a>
         <a class='ll-hero-cta ghost' href='mailto:info@allcarsdirectllc.com'>
           Talk to a specialist
         </a>
@@ -87,10 +77,9 @@ st.markdown(
     <section class='ll-hiw-cta'>
       <h2>Ready to find your deal?</h2>
       <p>Browse hundreds of pre-negotiated offers from trusted dealers.</p>
-      <span class='ll-hero-cta primary' role='link' tabindex='0'
-            data-href='/deals' onclick="{NAV_GO}">
+      <a class='ll-hero-cta primary' href='/deals' target='_self'>
         Browse all deals {icon('arrow-right', 16, '#ffffff')}
-      </span>
+      </a>
     </section>
     """,
     unsafe_allow_html=True,

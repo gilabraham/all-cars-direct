@@ -1084,36 +1084,23 @@ def top_nav(active_path: str = ""):
               ("how-it-works", "How It Works"),
               ("about", "About")]
 
-    # Render nav items as <span role=link> instead of <a>. Streamlit silently
-    # adds target="_blank" to anchor tags in user-injected HTML (security
-    # measure), which forced every nav click to open a new tab. Spans avoid
-    # that. The onclick handler navigates the top frame so the URL bar
-    # updates even when Streamlit Cloud iframes the app.
-    nav_go = (
-        "var u=this.dataset.href;"
-        "try{(window.top||window).location.href=u;}"
-        "catch(e){window.location.href=u;}"
-    )
-    nav_kbd = "if(event.key==='Enter'||event.key===' '){{{}}}".format(nav_go)
-
+    # Plain anchors. Streamlit strips inline onclick handlers from
+    # unsafe_allow_html, so JS-based navigation doesn't work. ``target='_self'``
+    # keeps clicks in the same tab; URL-bar update on .streamlit.app
+    # subdomains is limited by the Streamlit Cloud iframe wrapper (will work
+    # on a custom domain).
     items = ""
     for path, label in public:
         cls = "ll-navlink active" if path == active_path else "ll-navlink"
         href = "/" if path == "" else f"/{path}"
-        items += (
-            f"<span class='{cls}' role='link' tabindex='0' "
-            f"data-href='{href}' onclick=\"{nav_go}\" "
-            f"onkeydown=\"{nav_kbd}\">{label}</span>"
-        )
+        items += f"<a class='{cls}' href='{href}' target='_self'>{label}</a>"
 
     # Official primary horizontal logo (navy + blue, sits on the white header).
     brand = brand_svg("acd-primary-horizontal.svg") or (logo(36) + "<span>ALL CARS DIRECT</span>")
 
     html = (
         f"<div class='ll-nav-wrap'><div class='ll-nav'>"
-        f"<span class='ll-brand-link' role='link' tabindex='0' "
-        f"data-href='/' onclick=\"{nav_go}\" onkeydown=\"{nav_kbd}\">"
-        f"{brand}</span>"
+        f"<a class='ll-brand-link' href='/' target='_self'>{brand}</a>"
         f"<div class='ll-nav-right'>"
         f"<nav class='ll-navlinks'>{items}</nav>"
         f"<a class='ll-nav-cta' href='mailto:info@allcarsdirectllc.com'>Contact us</a>"
@@ -1163,27 +1150,13 @@ def admin_subnav(active_path: str = ""):
     admin = [("admin", "Dashboard"), ("admin-requests", "Requests"),
              ("admin-listings", "Manage"), ("admin-upload", "Upload"),
              ("admin-sources", "Sources")]
-    # Same span-based navigation trick as the main nav — see ``top_nav``.
-    nav_go = (
-        "var u=this.dataset.href;"
-        "try{(window.top||window).location.href=u;}"
-        "catch(e){window.location.href=u;}"
-    )
-    nav_kbd = "if(event.key==='Enter'||event.key===' '){{{}}}".format(nav_go)
 
-    def _link(path, label, extra_cls=""):
+    items = ""
+    for path, label in admin:
         cls = "ll-subnavlink active" if path == active_path else "ll-subnavlink"
-        if extra_cls:
-            cls += f" {extra_cls}"
-        return (
-            f"<span class='{cls}' role='link' tabindex='0' "
-            f"data-href='/{path}' onclick=\"{nav_go}\" "
-            f"onkeydown=\"{nav_kbd}\">{label}</span>"
-        )
-
-    items = "".join(_link(p, lbl) for p, lbl in admin)
+        items += f"<a class='{cls}' href='/{path}' target='_self'>{label}</a>"
     if not DISABLE_AUTH:
-        items += _link("?logout=1", "Log out", "ll-logout")
+        items += "<a class='ll-subnavlink ll-logout' href='/?logout=1' target='_self'>Log out</a>"
 
     html = (
         f"<div class='ll-subnav'><span class='ll-subnav-label'>ADMIN</span>"
