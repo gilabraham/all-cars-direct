@@ -7,7 +7,10 @@ from lib import auth, db, seed, styles
 
 from pathlib import Path
 
-_FAVICON = Path(__file__).parent / "assets" / "favicon.png"
+_ASSETS = Path(__file__).parent / "assets"
+# Prefer the 32px PNG for Streamlit's set_page_config (it accepts a single
+# image and renders best at 32px). The link tags below provide the rest.
+_FAVICON = _ASSETS / "favicon-32.png"
 
 st.set_page_config(
     page_title="All Cars Direct — Smarter Car Deals",
@@ -15,6 +18,32 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+
+# Streamlit's page_icon only sets a single favicon link. Inject the rest as
+# inline data URIs so desktop browsers, retina screens, and iOS home-screen
+# pins all get an appropriate icon — no static-file-serving config required.
+def _favicon_links() -> str:
+    import base64
+    parts = []
+    for name, rel, mime, size in (
+        ("favicon.svg",     "icon",            "image/svg+xml", None),
+        ("favicon-16.png",  "icon",            "image/png",     "16x16"),
+        ("favicon-32.png",  "icon",            "image/png",     "32x32"),
+        ("favicon-48.png",  "icon",            "image/png",     "48x48"),
+        ("favicon-96.png",  "icon",            "image/png",     "96x96"),
+        ("favicon-180.png", "apple-touch-icon", "image/png",    "180x180"),
+    ):
+        p = _ASSETS / name
+        if not p.exists():
+            continue
+        b64 = base64.b64encode(p.read_bytes()).decode()
+        sz = f" sizes='{size}'" if size else ""
+        parts.append(f"<link rel='{rel}' type='{mime}'{sz} href='data:{mime};base64,{b64}'>")
+    return "\n".join(parts)
+
+
+st.markdown(_favicon_links(), unsafe_allow_html=True)
 
 # Ensure DB schema exists. Seed sample inventory on first run so the storefront
 # always has something to show — seed is a no-op once any listings exist, so
