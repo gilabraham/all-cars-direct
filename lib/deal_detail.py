@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -145,6 +146,95 @@ def _pricing_block_html(deal: str, row: dict) -> str:
     )
 
 
+_GALLERY_NOISE_RE = re.compile(
+    r"^(new|used|pre[\s-]?owned)\s+\d{4}.*?cash\s+[\d.]+\s+Month\s+\d+\s+Months?\s*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _useful_description(row: dict) -> str:
+    """Return the listing description only if it looks like real prose. The
+    headless crawler synthesizes a "New 2025 GMC Sierra 1500 Pro - cash 623.03
+    Month 84 Months" string when no dealer description exists — show nothing
+    rather than that parser noise."""
+    desc = (row.get("description") or "").strip()
+    if not desc or _GALLERY_NOISE_RE.match(desc):
+        return ""
+    return desc
+
+
+def _render_gallery(photos: list[str], alt: str) -> None:
+    """Hero image + horizontally-scrollable thumb strip in one iframe. Click
+    a thumb to swap the hero in place — Streamlit strips inline scripts from
+    ``unsafe_allow_html``, so the whole gallery lives in a components.html
+    sandbox where JS can run."""
+    if not photos:
+        return
+    photos_js = json.dumps(photos)
+    thumbs_html = "".join(
+        f"<button class='thumb{(' is-active' if i == 0 else '')}' "
+        f"data-idx='{i}' aria-label='Photo {i + 1}'>"
+        f"<img src='{p}' loading='lazy' alt=''></button>"
+        for i, p in enumerate(photos)
+    )
+    components.html(
+        f"""
+<style>
+  * {{ box-sizing: border-box; }}
+  body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
+  .gallery {{ display: flex; flex-direction: column; gap: 10px; }}
+  .hero {{
+    background: linear-gradient(180deg, #f6f8fb 0%, #eef2f8 100%);
+    border-radius: 16px; padding: 12px; border: 1px solid #e4ebf3;
+    height: 260px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 2px rgba(14, 42, 71, 0.04);
+  }}
+  .hero img {{
+    max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px;
+    transition: opacity .18s ease;
+  }}
+  .thumbs {{
+    display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px;
+    scrollbar-width: thin; scrollbar-color: #c9d2e0 transparent;
+  }}
+  .thumbs::-webkit-scrollbar {{ height: 6px; }}
+  .thumbs::-webkit-scrollbar-thumb {{ background: #c9d2e0; border-radius: 999px; }}
+  .thumb {{
+    flex: 0 0 auto; width: 70px; height: 52px; padding: 0;
+    border: 1.5px solid #e4ebf3; border-radius: 8px;
+    overflow: hidden; background: #eef2f8; cursor: pointer;
+    transition: border-color .15s ease, transform .15s ease;
+  }}
+  .thumb:hover {{ transform: translateY(-1px); border-color: #b9c4d4; }}
+  .thumb.is-active {{ border-color: #2E8BFF; box-shadow: 0 0 0 1px #2E8BFF; }}
+  .thumb img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
+</style>
+<div class='gallery'>
+  <div class='hero'>
+    <img id='hero-img' src='{photos[0]}' alt='{alt}'>
+  </div>
+  <div class='thumbs' id='thumbs'>{thumbs_html}</div>
+</div>
+<script>
+  const PHOTOS = {photos_js};
+  const hero = document.getElementById('hero-img');
+  document.querySelectorAll('.thumb').forEach(btn => {{
+    btn.addEventListener('click', () => {{
+      const idx = parseInt(btn.dataset.idx, 10);
+      hero.style.opacity = '0.4';
+      const swap = new Image();
+      swap.onload = () => {{ hero.src = PHOTOS[idx]; hero.style.opacity = '1'; }};
+      swap.src = PHOTOS[idx];
+      document.querySelectorAll('.thumb').forEach(t => t.classList.remove('is-active'));
+      btn.classList.add('is-active');
+    }});
+  }});
+</script>
+""",
+        height=350 if len(photos) > 1 else 290,
+    )
+
+
 @st.dialog("Deal details", width="large")
 def show_detail(row: dict):
     components.html(_SCROLL_RESET_JS, height=0)
@@ -171,35 +261,18 @@ def show_detail(row: dict):
             row.get("make"), row.get("model"),
             row.get("year"), row.get("image_url"),
         )
-        st.markdown(
-            f"<div class='ll-md-img'>"
-            f"<img src='{img_url}' alt='{title_for(row)}'/>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-        # Headless crawl banks up to 12 dealer photos per VIN in ``photos_json``.
-        # Render them as a horizontally-scrollable thumbnail strip below the
-        # hero — each thumb opens the full-size image in a new tab.
+        # Build the photo list (hero first, then any unique extras from the
+        # headless ``photos_json``). Headless crawl banks up to 12 per VIN.
+        photos: list[str] = [img_url]
         photos_raw = row.get("photos_json")
-        photos: list[str] = []
         if photos_raw:
             try:
-                photos = [p for p in json.loads(photos_raw) if isinstance(p, str)]
+                for p in json.loads(photos_raw):
+                    if isinstance(p, str) and p and p not in photos:
+                        photos.append(p)
             except (json.JSONDecodeError, TypeError):
-                photos = []
-        # Drop the hero so it doesn't double-appear in the strip.
-        photos = [p for p in photos if p and p != row.get("image_url")]
-        if photos:
-            thumbs_html = "".join(
-                f"<a href='{p}' target='_blank' rel='noopener' class='ll-md-thumb'>"
-                f"<img src='{p}' alt='Photo {i + 1}' loading='lazy'/>"
-                f"</a>"
-                for i, p in enumerate(photos[:12])
-            )
-            st.markdown(
-                f"<div class='ll-md-thumbs'>{thumbs_html}</div>",
-                unsafe_allow_html=True,
-            )
+                pass
+        _render_gallery(photos, title_for(row))
 
     with info_col:
         chips = (
@@ -273,16 +346,18 @@ def show_detail(row: dict):
             unsafe_allow_html=True,
         )
 
-    if row.get("description"):
+    desc = _useful_description(row)
+    if desc:
         st.markdown(
-            f"<div class='ll-md-desc'>{row['description']}</div>",
+            f"<div class='ll-md-desc'>{desc}</div>",
             unsafe_allow_html=True,
         )
 
-    # ---- Request form.
+    # ---- Request CTA + form — single softer card instead of the heavy dark
+    # navy banner, so it reads as the natural next step after the pricing tabs.
     st.markdown(
         f"<div class='ll-md-req-head'>"
-        f"<div class='ll-md-req-ic'>{icon('phone', 18, '#ffffff')}</div>"
+        f"<div class='ll-md-req-ic'>{icon('phone', 18, '#2E8BFF')}</div>"
         f"<div><h3>Request this deal</h3>"
         f"<p>A specialist confirms availability and locks in pricing within 24 hours.</p></div>"
         f"</div>",

@@ -357,11 +357,11 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 }
 
 /* Chips row */
-.ll-md-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.ll-md-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
 .ll-md-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 5px 12px; border-radius: 999px;
-  font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+  font-size: 11.5px; font-weight: 750; letter-spacing: 0.35px;
   text-transform: uppercase; border: 1px solid transparent;
   line-height: 1.2;
 }
@@ -369,11 +369,11 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 
 /* Title + subtitle */
 .ll-md-title {
-  margin: 0 0 4px; font-size: 26px; font-weight: 800;
-  color: var(--ll-ink); letter-spacing: -0.4px; line-height: 1.15;
+  margin: 0 0 6px; font-size: 28px; font-weight: 820;
+  color: var(--ll-ink); letter-spacing: -0.6px; line-height: 1.1;
 }
 .ll-md-sub {
-  margin: 0 0 16px; color: #6b7686; font-size: 14px;
+  margin: 0 0 14px; color: #6b7686; font-size: 14px; line-height: 1.45;
 }
 
 /* Big price block */
@@ -490,31 +490,46 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 .ll-md-spec-row .v { color: var(--ll-ink); font-weight: 650; text-align: right;
   font-feature-settings: 'tnum'; }
 
-/* Description block */
+/* Description block — softer caption-style block, not a stark blue tag */
 .ll-md-desc {
-  margin: 6px 0 18px; padding: 14px 16px;
-  background: #f9fbfd; border-left: 3px solid var(--ll-primary);
-  border-radius: 4px; color: #4a5666;
-  font-size: 14px; line-height: 1.55;
+  margin: 22px 0 4px; padding: 14px 18px;
+  background: #f7f9fc; border: 1px solid #eef2f7;
+  border-radius: 12px; color: #5a6577;
+  font-size: 13.5px; line-height: 1.55;
 }
 
-/* Request-this-deal header */
+/* Request-this-deal: single unified card from header through Send button.
+   The form below it gets pulled up and visually merged via negative margin +
+   matching white background, so the whole thing reads as one panel. */
 .ll-md-req-head {
   display: flex; align-items: center; gap: 14px;
-  margin: 24px 0 10px; padding: 14px 18px;
-  background: linear-gradient(135deg, #112949 0%, #0E2A47 100%);
-  border-radius: 12px; color: #fff;
+  margin: 28px 0 -6px; padding: 18px 20px 22px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+  border: 1px solid #e4ebf3; border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 1px 2px rgba(14, 42, 71, 0.04);
 }
 .ll-md-req-ic {
-  width: 38px; height: 38px; border-radius: 10px;
-  background: rgba(255,255,255,0.12);
+  width: 40px; height: 40px; border-radius: 12px;
+  background: #eef4ff; border: 1px solid #d8e6fb;
   display: flex; align-items: center; justify-content: center;
+  flex: 0 0 auto;
 }
 .ll-md-req-head h3 {
-  margin: 0; font-size: 16px; font-weight: 750; color: #fff;
+  margin: 0; font-size: 16px; font-weight: 750; color: var(--ll-ink);
+  letter-spacing: -0.1px;
 }
 .ll-md-req-head p {
-  margin: 2px 0 0; font-size: 13px; color: #b3c0d4;
+  margin: 2px 0 0; font-size: 13px; color: #6b7686;
+}
+/* Form container picks up where the header card ends — same border, no top
+   edge, completing the unified panel. */
+[role="dialog"] [class*="st-key-md_req_wrap_"] {
+  padding: 20px 20px 16px !important;
+  background: #ffffff !important;
+  border: 1px solid #e4ebf3 !important; border-top: none !important;
+  border-radius: 0 0 14px 14px !important;
+  box-shadow: 0 8px 24px -16px rgba(14, 42, 71, 0.10);
 }
 
 /* Tighter form spacing inside the dialog */
