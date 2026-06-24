@@ -28,14 +28,33 @@ except ImportError:    # pragma: no cover
 
 @contextmanager
 def browser_session(headless: bool = True, timeout_ms: int = 30000):
-    """Yields a single Chromium context reused across many PDP visits."""
+    """Yields a single Chromium context reused across many PDP visits.
+
+    Launch flags are tuned for Linux containers (Fly.io / Docker) where
+    Chromium's default ``/dev/shm`` allocation is too small and its sandbox
+    can deadlock the renderer:
+
+      - ``--disable-dev-shm-usage`` → use ``/tmp`` instead of the
+        container's tiny ``/dev/shm`` (otherwise Chrome hangs on first paint)
+      - ``--no-sandbox`` → required when running as root in a minimal image
+      - ``--single-process`` / ``--disable-gpu`` → simplify subprocess graph
+    """
     if not PLAYWRIGHT_AVAILABLE:
         raise RuntimeError(
             "Playwright isn't installed. Run `pip install playwright && "
             "playwright install chromium` first."
         )
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless)
+        browser = p.chromium.launch(
+            headless=headless,
+            args=[
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-gpu",
+                "--disable-setuid-sandbox",
+                "--disable-blink-features=AutomationControlled",
+            ],
+        )
         context = browser.new_context(
             viewport={"width": 1280, "height": 900},
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
