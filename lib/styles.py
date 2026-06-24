@@ -352,35 +352,59 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 }
 .ll-md-loc svg { flex: 0 0 auto; }
 
-/* Tabbed pricing card (Lease / Finance / Cash) inside the deal-details modal.
-   Mirrors the Coral-Springs PDP: rounded pill tabs on top, a single deal's
-   price + terms below. Streamlit's stock tab strip gets re-skinned. */
+/* Tabbed pricing card (Lease / Finance / Cash) inside the deal-details
+   modal. Mirrors the Coral-Springs PDP: rounded segmented control on top
+   showing the headline price per deal, a single deal's full breakdown
+   below. Streamlit's stock tab strip is fully re-skinned. */
+[role="dialog"] [data-testid="stTabs"] {
+  margin-top: 18px;
+}
 [role="dialog"] [data-testid="stTabs"] [data-baseweb="tab-list"] {
-  gap: 8px; border-bottom: none; margin-top: 12px;
+  gap: 8px; border-bottom: none; padding: 6px;
+  background: #f1f4f9; border-radius: 14px;
+  display: inline-flex; width: auto;
 }
 [role="dialog"] [data-testid="stTabs"] [data-baseweb="tab"] {
-  border: 1.5px solid var(--ll-border); border-radius: 999px;
-  padding: 8px 22px; background: #fff; height: auto;
+  border: none; border-radius: 10px;
+  padding: 9px 18px; background: transparent; height: auto;
   font-size: 13px; font-weight: 700; color: #5a6577;
+  letter-spacing: 0.2px;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+[role="dialog"] [data-testid="stTabs"] [data-baseweb="tab"]:hover {
+  color: var(--ll-ink);
 }
 [role="dialog"] [data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {
-  background: #0E2A47; color: #fff; border-color: #0E2A47;
+  background: #ffffff; color: var(--ll-ink);
+  box-shadow: 0 1px 3px rgba(14, 42, 71, 0.08),
+              0 0 0 1px rgba(14, 42, 71, 0.06);
 }
 [role="dialog"] [data-testid="stTabs"] [data-baseweb="tab-highlight"],
 [role="dialog"] [data-testid="stTabs"] [data-baseweb="tab-border"] { display: none; }
+[role="dialog"] [data-testid="stTabs"] [data-baseweb="tab-panel"] { padding-top: 14px; }
 
 .ll-md-deal-card {
-  margin: 6px 0 4px; padding: 18px 20px;
-  background: linear-gradient(135deg, #f6faff 0%, #eef4ff 100%);
-  border: 1px solid #d8e6fb; border-radius: 14px;
+  margin: 4px 0; padding: 24px 26px;
+  background: #ffffff;
+  border: 1px solid #e4ebf3; border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(14, 42, 71, 0.04),
+              0 8px 24px -12px rgba(14, 42, 71, 0.10);
 }
-.ll-md-deal-price { display: flex; align-items: baseline; gap: 8px; margin-bottom: 14px; }
+.ll-md-deal-price {
+  display: flex; align-items: baseline; gap: 10px;
+  padding-bottom: 16px; margin-bottom: 14px;
+  border-bottom: 1px solid #eef2f7;
+}
 .ll-md-deal-amt {
-  font-size: 36px; font-weight: 800; color: var(--ll-ink);
-  letter-spacing: -1px; line-height: 1; font-feature-settings: 'tnum';
+  font-size: 44px; font-weight: 820; color: var(--ll-ink);
+  letter-spacing: -1.4px; line-height: 1; font-feature-settings: 'tnum';
 }
-.ll-md-deal-unit { font-size: 14px; font-weight: 600; color: #6b7686; }
-.ll-md-deal-rows { border-top: 1px solid #d8e6fb; padding-top: 10px; }
+.ll-md-deal-unit { font-size: 14.5px; font-weight: 650; color: #6b7686; }
+.ll-md-deal-rows .ll-md-spec-row {
+  padding: 8px 0; font-size: 14px;
+  border-bottom: 1px dashed #eef2f7;
+}
+.ll-md-deal-rows .ll-md-spec-row:last-child { border-bottom: none; }
 
 /* Spec grid: three grouped cards */
 .ll-md-specs {

@@ -4,10 +4,26 @@ from __future__ import annotations
 import math
 
 import pandas as pd
+import streamlit as st
 
 from . import scoring
 from .icons import icon
 from .images import image_src
+
+DEAL_PRIORITY = ("Lease", "Finance", "Cash")
+
+
+def featured_deal_for(row) -> str:
+    """Pick which deal type a card should lead with — defers to the user's
+    current filter selection (``_card_deal_pref`` in session state, set by
+    the browse view) so ticking "Cash" makes every card show Cash even
+    when the row also has lease/finance pricing."""
+    available = available_deal_types(row)
+    pref = st.session_state.get("_card_deal_pref", DEAL_PRIORITY)
+    for d in pref:
+        if d in available:
+            return d
+    return available[0] if available else "Cash"
 
 
 def _isna(x) -> bool:
@@ -111,16 +127,11 @@ def available_deal_types(row) -> list[str]:
 
 
 def card_html(row) -> str:
-    """Build a single deal card. Auto-picks the best offer to feature
-    (Lease > Finance > Cash) based on what the headless crawl captured."""
+    """Build a single deal card. The featured offer follows the user's
+    current deal-type filter via :func:`featured_deal_for` — ticking
+    "Cash" makes every card lead with Cash pricing."""
     available = available_deal_types(row)
-    # Prefer Lease, then Finance, then Cash. Per-row override possible via
-    # ``deal_type`` if that column was explicitly set to one of these.
-    featured = "Cash"
-    for pref in ("Lease", "Finance", "Cash"):
-        if pref in available:
-            featured = pref
-            break
+    featured = featured_deal_for(row)
     dt_color = deal_type_color(featured)
     rating_label, rating_color = scoring.rating(
         row.get("monthly_payment"), row.get("down_payment"),
@@ -170,7 +181,13 @@ def card_html(row) -> str:
             bits.append(f"{apr:.2f}% APR")
         secondary = " · ".join(bits)
     else:  # Cash
-        cash_v = row.get("cash_price") or row.get("selling_price")
+        # ``NaN or x`` returns NaN in Python (NaN is truthy), so reach for the
+        # explicit isna check rather than the ``or`` shortcut — only 4 of 95
+        # headless-crawled rows have ``cash_price`` set; the rest fall back
+        # to the dealer-page ``selling_price``.
+        cash_v = (row.get("cash_price")
+                  if not _isna(row.get("cash_price"))
+                  else row.get("selling_price"))
         amount = (
             f"<span class='ll-card-amt'>{money(cash_v)}</span>"
             f"<span class='ll-card-unit'>cash price</span>"
@@ -192,7 +209,9 @@ def card_html(row) -> str:
         elif d == "Finance" and not _isna(row.get("finance_monthly")):
             alt_bits.append(f"Finance {money(row.get('finance_monthly'))}/mo")
         elif d == "Cash":
-            cv = row.get("cash_price") or row.get("selling_price")
+            cv = (row.get("cash_price")
+                  if not _isna(row.get("cash_price"))
+                  else row.get("selling_price"))
             if not _isna(cv):
                 alt_bits.append(f"Cash {money(cv)}")
     alt_line = (

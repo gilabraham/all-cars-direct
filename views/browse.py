@@ -255,6 +255,19 @@ if sel_monthly is not None:
 if only_featured:
     f = f[f["featured"] == 1]
 
+# ----------------------------------------------------------- card preference
+# Tell card_html / show_detail which deal type the user is filtering for, so
+# the badge + modal-default-tab match the filter. If the user ticked "Cash",
+# Cash leads even when the listing also has lease/finance pricing.
+_priority = ["Lease", "Finance", "Cash"]
+if deal_types:
+    st.session_state["_card_deal_pref"] = (
+        [d for d in _priority if d in deal_types]
+        + [d for d in _priority if d not in deal_types]
+    )
+else:
+    st.session_state["_card_deal_pref"] = _priority
+
 # ----------------------------------------------------------- sort
 if sort_by == "Featured":
     f = f.sort_values(["featured", "deal_score"], ascending=[False, False])

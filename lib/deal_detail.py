@@ -10,7 +10,8 @@ import streamlit.components.v1 as components
 from lib import db, mailer, scoring
 from lib.icons import icon
 from lib.images import image_src
-from lib.ui import available_deal_types, deal_type_color, money, num, pct, title_for
+from lib.ui import (DEAL_PRIORITY, available_deal_types, deal_type_color,
+                    featured_deal_for, money, num, pct, title_for)
 
 
 def _has_value(value) -> bool:
@@ -55,10 +56,34 @@ _SCROLL_RESET_JS = """
 """
 
 
+def _cash_value(row: dict):
+    """``cash_price`` is the headless-scraped sticker; ``selling_price`` is the
+    static dealer-page price. Prefer the former but NaN-safely fall back.
+    Plain ``or`` is wrong here — NaN is truthy in Python."""
+    cp = row.get("cash_price")
+    if cp is not None and not (isinstance(cp, float) and math.isnan(cp)):
+        return cp
+    return row.get("selling_price")
+
+
+def _tab_headline(deal: str, row: dict) -> str:
+    """One-line price shown inside each tab label so the customer can compare
+    Lease/Finance/Cash before clicking through."""
+    if deal == "Lease" and _has_value(row.get("lease_monthly")):
+        return f"{money(row['lease_monthly'])}/mo"
+    if deal == "Finance" and _has_value(row.get("finance_monthly")):
+        return f"{money(row['finance_monthly'])}/mo"
+    if deal == "Cash":
+        cv = _cash_value(row)
+        if _has_value(cv):
+            return money(cv)
+    return "—"
+
+
 def _pricing_block_html(deal: str, row: dict) -> str:
     """One pricing card per deal type — mirrors the Coral-Springs PDP layout:
     a big primary price on top, supporting terms below."""
-    cash_p = row.get("cash_price") or row.get("selling_price")
+    cash_p = _cash_value(row)
     if deal == "Lease":
         amt = money(row.get("lease_monthly"))
         unit = "/mo lease"
@@ -131,10 +156,12 @@ def show_detail(row: dict):
         row.get("term_months"), row.get("msrp"),
     )
 
-    # Featured deal — same priority the card uses: Lease > Finance > Cash.
+    # Featured deal mirrors the card — defers to the user's deal-type
+    # filter (browse view stashes it in session state).
     available = available_deal_types(row) or ["Cash"]
-    featured = next((d for d in ("Lease", "Finance", "Cash") if d in available), "Cash")
+    featured = featured_deal_for(row)
     dt_color = deal_type_color(featured)
+    pref_order = st.session_state.get("_card_deal_pref", DEAL_PRIORITY)
 
     # ---- Hero: image on the left, headline + chips on the right.
     img_col, info_col = st.columns([5, 7], gap="medium")
@@ -181,11 +208,15 @@ def show_detail(row: dict):
             unsafe_allow_html=True,
         )
 
-    # ---- Pricing tabs (Lease / Finance / Cash) — only ones the dealer offers.
-    # Featured deal goes first so it's the default-selected tab.
-    tab_order = [featured] + [d for d in ("Lease", "Finance", "Cash")
+    # ---- Pricing tabs (Lease / Finance / Cash) — only deal types the dealer
+    # actually offers. Featured first so it's the default-selected tab; the
+    # rest follow the user's filter priority.
+    tab_order = [featured] + [d for d in pref_order
                               if d in available and d != featured]
-    tabs = st.tabs(tab_order)
+    # Each tab label carries its headline price so the customer can compare
+    # without clicking through. Matches the Coral-Springs PDP behavior.
+    tab_labels = [f"{d}  ·  {_tab_headline(d, row)}" for d in tab_order]
+    tabs = st.tabs(tab_labels)
     for tab, deal in zip(tabs, tab_order):
         with tab:
             st.markdown(
