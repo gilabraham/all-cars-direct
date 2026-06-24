@@ -152,7 +152,13 @@ makes = sorted(df["make"].dropna().unique().tolist())
 body_types = sorted(df["body_type"].dropna().unique().tolist())
 fuels = sorted(df["fuel_type"].dropna().unique().tolist())
 yr_min, yr_max = int(df["year"].min()), int(df["year"].max())
-monthly_series = df["monthly_payment"].dropna()
+# Monthly slider should range over ALL monthly-payment fields so headless-
+# crawled rows (which populate lease_monthly / finance_monthly but not the
+# legacy monthly_payment column) aren't silently clipped out at load.
+_monthly_cols = [c for c in ("monthly_payment", "lease_monthly", "finance_monthly")
+                 if c in df.columns]
+monthly_series = pd.concat([df[c].dropna() for c in _monthly_cols]) \
+    if _monthly_cols else pd.Series([], dtype="float64")
 has_monthly = not monthly_series.empty
 m_min = int(monthly_series.min()) if has_monthly else 0
 m_max = int(monthly_series.max()) + 1 if has_monthly else 0
@@ -161,7 +167,18 @@ m_max = int(monthly_series.max()) + 1 if has_monthly else 0
 make_counts = df.groupby("make").size().to_dict()
 body_counts = df.groupby("body_type").size().to_dict()
 fuel_counts = df.groupby("fuel_type").size().to_dict()
-deal_counts = df.groupby("deal_type").size().to_dict()
+# Deal-type counts derive from which per-type pricing fields are populated,
+# not the listing's nominal ``deal_type`` column — a single listing usually
+# offers lease + finance + cash simultaneously after a headless crawl.
+deal_counts = {
+    "Lease": int(df["lease_monthly"].notna().sum()) if "lease_monthly" in df.columns else 0,
+    "Finance": int(df["finance_monthly"].notna().sum()) if "finance_monthly" in df.columns else 0,
+    "Cash": int(df["selling_price"].notna().sum()) if "selling_price" in df.columns else 0,
+}
+# Backfill from the nominal ``deal_type`` column for legacy/CSV-uploaded
+# rows that don't have per-type columns populated.
+if not any(deal_counts.values()) and "deal_type" in df.columns:
+    deal_counts = df.groupby("deal_type").size().to_dict()
 
 # Read filter values from session state first so we can sort/filter before
 # rendering the layout. Selections are per-option checkboxes with keys like
@@ -199,7 +216,24 @@ if q:
            + f["location"].fillna("") + " " + f["dealer_name"].fillna("")).str.lower()
     f = f[hay.str.contains(ql, na=False)]
 if deal_types:
-    f = f[f["deal_type"].isin(deal_types)]
+    # Match by *availability* of the per-deal-type pricing fields, not the
+    # listing's nominal ``deal_type`` column. A car with ``lease_monthly``
+    # populated qualifies as "Lease" even if its ``deal_type`` says "Cash".
+    masks = []
+    if "Lease" in deal_types and "lease_monthly" in f.columns:
+        masks.append(f["lease_monthly"].notna())
+    if "Finance" in deal_types and "finance_monthly" in f.columns:
+        masks.append(f["finance_monthly"].notna())
+    if "Cash" in deal_types and "selling_price" in f.columns:
+        masks.append(f["selling_price"].notna())
+    if masks:
+        combined = masks[0]
+        for m in masks[1:]:
+            combined = combined | m
+        f = f[combined]
+    else:
+        # Fallback for legacy rows without per-type columns.
+        f = f[f["deal_type"].isin(deal_types)]
 if sel_makes:
     f = f[f["make"].isin(sel_makes)]
 if sel_models:
@@ -211,7 +245,12 @@ if sel_fuel:
 f = f[(f["year"] >= sel_years[0]) & (f["year"] <= sel_years[1])]
 if sel_monthly is not None:
     is_cash = f["deal_type"] == "Cash"
-    within = f["monthly_payment"] <= sel_monthly
+    # A row passes if ANY of its monthly-payment fields is within the cap.
+    # NaN comparisons are False, so missing fields don't accidentally pass.
+    within = pd.Series(False, index=f.index)
+    for col in ("monthly_payment", "lease_monthly", "finance_monthly"):
+        if col in f.columns:
+            within = within | (f[col] <= sel_monthly)
     f = f[within | (is_cash if include_cash else False)]
 if only_featured:
     f = f[f["featured"] == 1]

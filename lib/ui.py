@@ -88,10 +88,40 @@ def comparison_frame(sub) -> pd.DataFrame:
     return out
 
 
+def available_deal_types(row) -> list[str]:
+    """Return the deal types actually offered for this listing — derived from
+    which per-deal-type pricing fields the headless crawl captured.
+    Used for both filtering ("show only lease deals") and card rendering
+    ("which offer should the card lead with")."""
+    out = []
+    if not _isna(row.get("lease_monthly")):
+        out.append("Lease")
+    if not _isna(row.get("finance_monthly")):
+        out.append("Finance")
+    # Cash is universal — every listing has a selling/cash price.
+    if not _isna(row.get("selling_price")) or not _isna(row.get("cash_price")):
+        out.append("Cash")
+    # Fall back to the listing's nominal deal_type field (covers legacy /
+    # CSV-uploaded rows that don't have the per-type columns populated).
+    if not out:
+        dt = row.get("deal_type")
+        if dt:
+            out.append(dt)
+    return out
+
+
 def card_html(row) -> str:
-    """Build a single deal card as an HTML string (Carvana-style)."""
-    deal_type = row.get("deal_type") or "Lease"
-    dt_color = deal_type_color(deal_type)
+    """Build a single deal card. Auto-picks the best offer to feature
+    (Lease > Finance > Cash) based on what the headless crawl captured."""
+    available = available_deal_types(row)
+    # Prefer Lease, then Finance, then Cash. Per-row override possible via
+    # ``deal_type`` if that column was explicitly set to one of these.
+    featured = "Cash"
+    for pref in ("Lease", "Finance", "Cash"):
+        if pref in available:
+            featured = pref
+            break
+    dt_color = deal_type_color(featured)
     rating_label, rating_color = scoring.rating(
         row.get("monthly_payment"), row.get("down_payment"),
         row.get("term_months"), row.get("msrp"),
@@ -99,7 +129,6 @@ def card_html(row) -> str:
     img = image_src(row.get("make"), row.get("model"), row.get("year"), row.get("image_url"))
     title = title_for(row)
 
-    # Subtitle: trim · body · fuel
     sub_parts = [str(p) for p in (row.get("trim"), row.get("body_type"), row.get("fuel_type")) if p]
     subtitle = " · ".join(sub_parts)
 
@@ -108,47 +137,74 @@ def card_html(row) -> str:
         if int(row.get("featured") or 0) else ""
     )
 
-    # Price + compact secondary spec line per deal type.
-    if deal_type == "Cash":
+    # ---- Primary price (the featured deal type) + a one-line spec.
+    if featured == "Lease":
+        amt = row.get("lease_monthly")
+        term = row.get("lease_term_months")
+        down = row.get("lease_down_payment")
         amount = (
-            f"<span class='ll-card-amt'>{money(row.get('selling_price'))}</span>"
-            f"<span class='ll-card-unit'>cash price</span>"
-        )
-        bits = [f"MSRP {money(row.get('msrp'))}"]
-        disc = scoring.discount_percent(row.get("selling_price"), row.get("msrp"))
-        if disc is not None:
-            bits.append(f"{pct(disc)} off")
-        secondary = " · ".join(bits)
-    elif deal_type == "Finance":
-        amount = (
-            f"<span class='ll-card-amt'>{money(row.get('monthly_payment'))}</span>"
-            f"<span class='ll-card-unit'>/mo finance</span>"
-        )
-        bits = []
-        if not _isna(row.get("down_payment")):
-            bits.append(f"{money(row.get('down_payment'))} down")
-        if not _isna(row.get("term_months")):
-            bits.append(f"{int(row['term_months'])} mo")
-        secondary = " · ".join(bits)
-    else:  # Lease
-        amount = (
-            f"<span class='ll-card-amt'>{money(row.get('monthly_payment'))}</span>"
+            f"<span class='ll-card-amt'>{money(amt)}</span>"
             f"<span class='ll-card-unit'>/mo lease</span>"
         )
         bits = []
-        if not _isna(row.get("down_payment")):
-            bits.append(f"{money(row.get('down_payment'))} due at signing")
-        if not _isna(row.get("term_months")):
-            bits.append(f"{int(row['term_months'])} mo")
-        if not _isna(row.get("annual_mileage")):
-            bits.append(f"{int(row['annual_mileage']) // 1000}k mi/yr")
+        if not _isna(term):
+            bits.append(f"{int(term)} mo")
+        if not _isna(down):
+            bits.append(f"{money(down)} due")
         secondary = " · ".join(bits)
+    elif featured == "Finance":
+        amt = row.get("finance_monthly")
+        term = row.get("finance_term_months")
+        down = row.get("finance_down_payment")
+        apr = row.get("finance_apr")
+        amount = (
+            f"<span class='ll-card-amt'>{money(amt)}</span>"
+            f"<span class='ll-card-unit'>/mo finance</span>"
+        )
+        bits = []
+        if not _isna(term):
+            bits.append(f"{int(term)} mo")
+        if not _isna(down):
+            bits.append(f"{money(down)} down")
+        if not _isna(apr):
+            bits.append(f"{apr:.2f}% APR")
+        secondary = " · ".join(bits)
+    else:  # Cash
+        cash_v = row.get("cash_price") or row.get("selling_price")
+        amount = (
+            f"<span class='ll-card-amt'>{money(cash_v)}</span>"
+            f"<span class='ll-card-unit'>cash price</span>"
+        )
+        bits = []
+        if not _isna(row.get("msrp")):
+            bits.append(f"MSRP {money(row.get('msrp'))}")
+        disc = scoring.discount_percent(cash_v, row.get("msrp"))
+        if disc is not None:
+            bits.append(f"{pct(disc)} off")
+        secondary = " · ".join(bits)
+
+    # ---- "Also available" mini-row for the non-featured deal types.
+    alts = [d for d in available if d != featured]
+    alt_bits = []
+    for d in alts:
+        if d == "Lease" and not _isna(row.get("lease_monthly")):
+            alt_bits.append(f"Lease {money(row.get('lease_monthly'))}/mo")
+        elif d == "Finance" and not _isna(row.get("finance_monthly")):
+            alt_bits.append(f"Finance {money(row.get('finance_monthly'))}/mo")
+        elif d == "Cash":
+            cv = row.get("cash_price") or row.get("selling_price")
+            if not _isna(cv):
+                alt_bits.append(f"Cash {money(cv)}")
+    alt_line = (
+        f"<div class='ll-card-alts'>Also: {' · '.join(alt_bits)}</div>"
+        if alt_bits else ""
+    )
 
     html = f"""
     <div class='ll-card'>
       <div class='ll-card-media'>
         <img src='{img}' alt='{title}'/>
-        <span class='ll-card-type' style='background:{dt_color}'>{deal_type}</span>
+        <span class='ll-card-type' style='background:{dt_color}'>{featured}</span>
         {fav_html}
       </div>
       <div class='ll-card-body'>
@@ -156,6 +212,7 @@ def card_html(row) -> str:
         <div class='ll-card-sub'>{subtitle}</div>
         <div class='ll-card-price'>{amount}</div>
         <div class='ll-card-spec'>{secondary}</div>
+        {alt_line}
       </div>
       <div class='ll-card-foot'>
         <span class='ll-card-loc'>{icon('location_on', 13, '#6b7280')} {row.get('location') or '—'}</span>

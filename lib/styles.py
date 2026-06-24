@@ -272,6 +272,10 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 }
 .ll-card-unit { font-size: 13px; font-weight: 600; color: var(--ll-muted); }
 .ll-card-spec { font-size: 13px; color: var(--ll-muted); margin: 0 0 6px; }
+.ll-card-alts {
+  font-size: 12px; color: var(--ll-muted); font-weight: 600;
+  margin: 2px 0 0; padding-top: 6px; border-top: 1px dashed var(--ll-border);
+}
 
 .ll-card-foot {
   display: flex; align-items: center; justify-content: space-between;
