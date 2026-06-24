@@ -14,7 +14,7 @@ DISABLE_AUTH = False
 # Feature flag: when False, the web crawler is shown in the admin but Sync
 # actions are blocked (with an explanatory banner). Flip to True to re-enable
 # live crawling. Kept here so it lives next to the other "ops switches".
-CRAWLER_ENABLED = False
+CRAWLER_ENABLED = True
 
 _DEFAULT_PASSWORD = "admin"
 

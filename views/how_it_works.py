@@ -1,4 +1,4 @@
-"""How It Works — customer-facing explainer page (matches home-hero design)."""
+"""How It Works — concierge-negotiator explainer (matches home-hero design)."""
 from __future__ import annotations
 
 import streamlit as st
@@ -11,8 +11,9 @@ st.markdown(
     <section class='ll-home-hero'>
       <div class='ll-hero-eyebrow'>{icon('route', 14, '#7aa9ff')} The All Cars Direct playbook</div>
       <h1>How it works</h1>
-      <p>From browsing to driving in under a week. Four simple steps, zero
-         haggling, and complete number transparency the whole way through.</p>
+      <p>We work directly with a vetted, in-network group of dealers across the
+         country — locking in below-invoice pricing the average buyer could
+         never get on their own. Tell us what you want and we'll do the rest.</p>
       <div class='ll-hero-ctas'>
         <a class='ll-hero-cta primary' href='/deals' target='_self'>
           Browse all deals {icon('arrow-right', 16, '#ffffff')}
@@ -22,8 +23,8 @@ st.markdown(
         </a>
       </div>
       <div class='ll-hero-trust'>
-        <span>{icon('check-circle', 14, '#7aa9ff')} Pre-negotiated pricing</span>
-        <span>{icon('tag', 14, '#7aa9ff')} Transparent math</span>
+        <span>{icon('check-circle', 14, '#7aa9ff')} In-network dealers only</span>
+        <span>{icon('tag', 14, '#7aa9ff')} Below-invoice pricing</span>
         <span>{icon('key', 14, '#7aa9ff')} Pickup or delivery</span>
       </div>
     </section>
@@ -34,18 +35,19 @@ st.markdown(
 
 # ---------------------------------------------------------------- steps panel
 STEPS = [
-    ("search", "Browse curated deals",
-     "Every listing is a real, pre-vetted lease, finance, or cash offer with "
-     "fully transparent numbers — no asterisks, no surprise fees."),
-    ("percent", "Compare the math",
-     "We surface the effective monthly cost and % of MSRP so you can spot a "
-     "genuinely strong deal — not just a low headline payment."),
-    ("file-text", "Request your deal",
-     "Found one you like? Send a request and we connect you with the dealer "
-     "who has already agreed to the terms."),
-    ("key", "Drive away",
-     "No back-and-forth haggling. Sign at the price you saw and pick up your "
-     "car — or have it delivered to your door."),
+    ("search", "Tell us what you want",
+     "Browse our in-network pre-negotiated deals — or tell us the exact "
+     "make, model, trim, and color you're after, even if it's not on the "
+     "listings page. We track it down for you."),
+    ("percent", "We negotiate. You get the price.",
+     "We lock in real, below-invoice pricing the average buyer never sees, "
+     "powered by direct relationships with our dealer network. You get "
+     "transparent quotes via call, text, or email — no haggling, no "
+     "showroom pressure, no surprise fees."),
+    ("key", "Pick it up — or have it delivered",
+     "Sign at the dealer and drive home, or skip the showroom entirely with "
+     "our Sign and Drive remote-signing + white-glove delivery service "
+     "(details below)."),
 ]
 steps_html = ""
 for i, (ic, title, body) in enumerate(STEPS, start=1):
@@ -61,10 +63,33 @@ for i, (ic, title, body) in enumerate(STEPS, start=1):
 st.markdown(
     f"""
     <section class='ll-hiw-panel'>
-      <div class='ll-hiw-eyebrow'>{icon('layers', 14, '#7aa9ff')} The four steps</div>
-      <h2>A faster way to a better deal</h2>
-      <p>Every step is designed to put the numbers first and the dealer pressure last.</p>
+      <div class='ll-hiw-eyebrow'>{icon('layers', 14, '#7aa9ff')} The three-step process</div>
+      <h2>From your shortlist to your driveway</h2>
+      <p>Every step is designed to remove the games and put the numbers first.</p>
       <div class='ll-hiw'>{steps_html}</div>
+    </section>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ---------------------------------------------------------------- sign & drive
+st.markdown(
+    f"""
+    <section class='ll-why'>
+      <div class='ll-why-ic'>{icon('car', 22, '#2E8BFF')}</div>
+      <h2>Sign and Drive — never visit a dealership</h2>
+      <p>Our premium <strong>Sign and Drive</strong> service handles every
+         step from your couch: remote document signing, all financing
+         paperwork, and white-glove delivery straight to your driveway.
+         Available on most in-network vehicles.</p>
+      <p style='margin-top: 14px; font-weight: 600; color: var(--ll-ink);'>
+        Interested? Email
+        <a href='mailto:info@allcarsdirectllc.com?subject=Sign%20and%20Drive%20Inquiry'
+           style='color:var(--ll-primary);text-decoration:none;'>
+          info@allcarsdirectllc.com</a>
+        to discuss your Sign and Drive deal.
+      </p>
     </section>
     """,
     unsafe_allow_html=True,
@@ -76,7 +101,7 @@ st.markdown(
     f"""
     <section class='ll-hiw-cta'>
       <h2>Ready to find your deal?</h2>
-      <p>Browse hundreds of pre-negotiated offers from trusted dealers.</p>
+      <p>Browse our pre-negotiated offers, or tell us what you're looking for.</p>
       <a class='ll-hero-cta primary' href='/deals' target='_self'>
         Browse all deals {icon('arrow-right', 16, '#ffffff')}
       </a>

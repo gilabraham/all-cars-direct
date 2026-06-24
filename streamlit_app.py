@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from lib import auth, db, seed, styles
+from lib import auth, db, styles
 
 from pathlib import Path
 
@@ -45,11 +45,9 @@ def _favicon_links() -> str:
 
 st.markdown(_favicon_links(), unsafe_allow_html=True)
 
-# Ensure DB schema exists. Seed sample inventory on first run so the storefront
-# always has something to show — seed is a no-op once any listings exist, so
-# the crawler / CSV-uploaded data is never overwritten.
+# Ensure DB schema exists. Inventory comes from the admin Sources page
+# (web crawler) or the CSV bulk upload — no auto-seed.
 db.init_db()
-seed.seed_if_empty()
 styles.inject()
 
 # Log out via the header link (/?logout=1).
@@ -65,6 +63,8 @@ how = st.Page("views/how_it_works.py", title="How It Works",
               icon=":material/route:", url_path="how-it-works")
 about = st.Page("views/about.py", title="About",
                 icon=":material/info:", url_path="about")
+dealers = st.Page("views/dealers.py", title="For Dealers",
+                  icon=":material/storefront:", url_path="dealers")
 dashboard = st.Page("views/dashboard.py", title="Dashboard",
                     icon=":material/dashboard:", url_path="admin")
 requests_pg = st.Page("views/requests.py", title="Requests",
@@ -79,7 +79,8 @@ sources = st.Page("views/sources.py", title="Sources",
 # Navigation lives in our custom top header; hide Streamlit's built-in menu.
 # Admin pages are reachable only by URL (sign in at /admin) and, once
 # authenticated, via the admin links that appear in the header.
-pg = st.navigation([home, browse, how, about, dashboard, requests_pg, manage, upload, sources],
+pg = st.navigation([home, browse, how, about, dealers,
+                    dashboard, requests_pg, manage, upload, sources],
                    position="hidden")
 
 styles.top_nav(active_path=pg.url_path)

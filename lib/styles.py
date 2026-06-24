@@ -1082,6 +1082,7 @@ def top_nav(active_path: str = ""):
     public = [("", "Home"),
               ("deals", "Browse Deals"),
               ("how-it-works", "How It Works"),
+              ("dealers", "For Dealers"),
               ("about", "About")]
 
     # Plain anchors. Streamlit strips inline onclick handlers from
