@@ -255,9 +255,16 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   font-weight: 700 !important;
 }
 
-.ll-card-media { position: relative; aspect-ratio: 16/10; overflow: hidden; background: #eef2f8; }
-.ll-card-media img { width:100%; height:100%; object-fit: cover; display: block; transition: transform .35s ease; }
-.ll-card:hover .ll-card-media img { transform: scale(1.04); }
+.ll-card-media { position: relative; aspect-ratio: 16/10; overflow: hidden;
+  background: #eef2f8;
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px;
+}
+/* ``contain`` so wide truck side-views and tall SUV 3/4 shots both show the
+   whole vehicle. The card's light-blue tray reads as intentional letterbox. */
+.ll-card-media img { max-width: 100%; max-height: 100%; width: auto; height: auto;
+  object-fit: contain; display: block; transition: transform .35s ease; }
+.ll-card:hover .ll-card-media img { transform: scale(1.03); }
 
 /* Deal-type pills on the image (top-left). Wrapped in a flex row so multiple
    pills can stack when the user has filtered for multiple deal types. */
@@ -326,6 +333,28 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   border-radius: 16px; padding: 14px; border: 1px solid var(--ll-border);
 }
 .ll-md-img img { border-radius: 10px; display: block; width: 100% !important; }
+
+/* Photo gallery — horizontal scrollable thumbnail strip under the hero. */
+.ll-md-thumbs {
+  display: flex; gap: 8px; margin-top: 10px;
+  overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: thin;
+}
+.ll-md-thumbs::-webkit-scrollbar { height: 6px; }
+.ll-md-thumbs::-webkit-scrollbar-thumb {
+  background: #c9d2e0; border-radius: 999px;
+}
+.ll-md-thumb {
+  flex: 0 0 auto; width: 72px; height: 56px;
+  border: 1px solid var(--ll-border); border-radius: 8px;
+  overflow: hidden; background: #eef2f8;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.ll-md-thumb:hover {
+  border-color: var(--ll-primary); transform: translateY(-1px);
+}
+.ll-md-thumb img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
 
 /* Chips row */
 .ll-md-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }

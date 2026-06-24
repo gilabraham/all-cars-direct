@@ -2,6 +2,7 @@
 any page (browse, home top-deals, etc.)."""
 from __future__ import annotations
 
+import json
 import math
 
 import streamlit as st
@@ -176,6 +177,29 @@ def show_detail(row: dict):
             f"</div>",
             unsafe_allow_html=True,
         )
+        # Headless crawl banks up to 12 dealer photos per VIN in ``photos_json``.
+        # Render them as a horizontally-scrollable thumbnail strip below the
+        # hero — each thumb opens the full-size image in a new tab.
+        photos_raw = row.get("photos_json")
+        photos: list[str] = []
+        if photos_raw:
+            try:
+                photos = [p for p in json.loads(photos_raw) if isinstance(p, str)]
+            except (json.JSONDecodeError, TypeError):
+                photos = []
+        # Drop the hero so it doesn't double-appear in the strip.
+        photos = [p for p in photos if p and p != row.get("image_url")]
+        if photos:
+            thumbs_html = "".join(
+                f"<a href='{p}' target='_blank' rel='noopener' class='ll-md-thumb'>"
+                f"<img src='{p}' alt='Photo {i + 1}' loading='lazy'/>"
+                f"</a>"
+                for i, p in enumerate(photos[:12])
+            )
+            st.markdown(
+                f"<div class='ll-md-thumbs'>{thumbs_html}</div>",
+                unsafe_allow_html=True,
+            )
 
     with info_col:
         chips = (
