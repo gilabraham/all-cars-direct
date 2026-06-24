@@ -206,7 +206,7 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 
 /* ---- Deal card (Carvana-style, slick) ----
    The visual frame (border, bg, shadow, hover lift) is provided by the
-   st.container(border=True) wrapper [class*="st-key-cardwrap_"] so the
+   st.container(border=True) wrapper [class*="cardwrap_"] so the
    "View details" button below the HTML reads as part of the same card. */
 .ll-card {
   background: transparent;
@@ -215,7 +215,7 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   display: flex; flex-direction: column;
 }
 
-[class*="st-key-cardwrap_"] {
+[class*="cardwrap_"] {
   padding: 0 !important;
   background: #ffffff !important;
   border: 1px solid var(--ll-border) !important;
@@ -227,27 +227,27 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   height: 100%;
   display: flex; flex-direction: column;
 }
-[class*="st-key-cardwrap_"]:hover {
+[class*="cardwrap_"]:hover {
   transform: translateY(-4px);
   box-shadow: 0 24px 40px -22px rgba(15,23,42,0.30), 0 4px 12px -8px rgba(15,23,42,0.10);
   border-color: #d6dbe5;
 }
-[class*="st-key-cardwrap_"] > div[data-testid="stVerticalBlock"] {
+[class*="cardwrap_"] > div[data-testid="stVerticalBlock"] {
   gap: 0 !important;
   flex: 1;                /* let the inner vertical block stretch... */
   display: flex; flex-direction: column;
 }
 /* ...so the markdown-rendered .ll-card can claim the remaining height
    and push the View-details button to the wrap's bottom edge. */
-[class*="st-key-cardwrap_"] [data-testid="stMarkdown"] { flex: 1; display: flex; }
-[class*="st-key-cardwrap_"] [data-testid="stMarkdown"] > div { flex: 1; display: flex; }
-[class*="st-key-cardwrap_"] .ll-card { flex: 1; }
+[class*="cardwrap_"] [data-testid="stMarkdown"] { flex: 1; display: flex; }
+[class*="cardwrap_"] [data-testid="stMarkdown"] > div { flex: 1; display: flex; }
+[class*="cardwrap_"] .ll-card { flex: 1; }
 /* Streamlit's column container needs to opt into stretching its children. */
 [data-testid="stColumn"] > div[data-testid="stVerticalBlock"] { height: 100%; }
 /* The Details button becomes the card's bottom edge — square corners merging
    into the rounded container, full width, no extra margin. */
-[class*="st-key-cardwrap_"] [data-testid="stButton"] { margin: 0 !important; }
-[class*="st-key-cardwrap_"] [data-testid="stButton"] > button {
+[class*="cardwrap_"] [data-testid="stButton"] { margin: 0 !important; }
+[class*="cardwrap_"] [data-testid="stButton"] > button {
   border: none !important;
   border-top: 1px solid var(--ll-border) !important;
   border-radius: 0 !important;
@@ -266,16 +266,19 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   object-fit: contain; display: block; transition: transform .35s ease; }
 .ll-card:hover .ll-card-media img { transform: scale(1.03); }
 
-/* Deal-type pills on the image (top-left). Wrapped in a flex row so multiple
-   pills can stack when the user has filtered for multiple deal types. */
+/* Deal-type pills on the image (top-left). Single-row flex; tuned to fit
+   three pills (LEASE / FINANCE / CASH) inside the narrower home-page card
+   image without wrapping over the vehicle. */
 .ll-card-types {
-  position: absolute; top: 12px; left: 12px;
-  display: inline-flex; gap: 5px; flex-wrap: wrap; max-width: calc(100% - 60px);
+  position: absolute; top: 10px; left: 10px;
+  display: inline-flex; gap: 4px;
+  max-width: calc(100% - 52px);
 }
 .ll-card-type {
-  font-size: 11px; font-weight: 750; letter-spacing: .4px; text-transform: uppercase;
-  padding: 5px 11px; border-radius: 999px; color: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.16);
+  font-size: 10px; font-weight: 750; letter-spacing: .35px; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 999px; color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  white-space: nowrap; line-height: 1.2;
 }
 /* Non-featured pills sit slightly muted so the featured one still reads as
    the "primary" offer the card's price is showing. */
