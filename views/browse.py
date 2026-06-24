@@ -258,7 +258,9 @@ if only_featured:
 # ----------------------------------------------------------- card preference
 # Tell card_html / show_detail which deal type the user is filtering for, so
 # the badge + modal-default-tab match the filter. If the user ticked "Cash",
-# Cash leads even when the listing also has lease/finance pricing.
+# Cash leads even when the listing also has lease/finance pricing. The raw
+# checked set goes through too so cards can render multiple pills when the
+# user opted into more than one deal type.
 _priority = ["Lease", "Finance", "Cash"]
 if deal_types:
     st.session_state["_card_deal_pref"] = (
@@ -267,6 +269,7 @@ if deal_types:
     )
 else:
     st.session_state["_card_deal_pref"] = _priority
+st.session_state["_card_user_deals"] = list(deal_types)
 
 # ----------------------------------------------------------- sort
 if sort_by == "Featured":

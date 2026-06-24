@@ -140,6 +140,23 @@ def card_html(row) -> str:
     img = image_src(row.get("make"), row.get("model"), row.get("year"), row.get("image_url"))
     title = title_for(row)
 
+    # When the user filters by 2+ deal types, show a pill for every matching
+    # deal type the listing offers — not just the featured one. Stays as a
+    # single pill when no filter is active or only one type is checked.
+    user_deals = st.session_state.get("_card_user_deals", []) or []
+    if len(user_deals) >= 2:
+        pill_types = [d for d in DEAL_PRIORITY if d in available and d in user_deals]
+        if not pill_types:
+            pill_types = [featured]
+    else:
+        pill_types = [featured]
+    pills_html = "".join(
+        f"<span class='ll-card-type "
+        f"{'is-featured' if d == featured else 'is-alt'}' "
+        f"style='background:{deal_type_color(d)}'>{d}</span>"
+        for d in pill_types
+    )
+
     sub_parts = [str(p) for p in (row.get("trim"), row.get("body_type"), row.get("fuel_type")) if p]
     subtitle = " · ".join(sub_parts)
 
@@ -201,7 +218,12 @@ def card_html(row) -> str:
         secondary = " · ".join(bits)
 
     # ---- "Also available" mini-row for the non-featured deal types.
-    alts = [d for d in available if d != featured]
+    # When the user has narrowed to specific deal types, only mention alts
+    # that match the filter — Cash pricing on a Lease-only filter is noise.
+    if len(user_deals) >= 2:
+        alts = [d for d in pill_types if d != featured]
+    else:
+        alts = [d for d in available if d != featured]
     alt_bits = []
     for d in alts:
         if d == "Lease" and not _isna(row.get("lease_monthly")):
@@ -223,7 +245,7 @@ def card_html(row) -> str:
     <div class='ll-card'>
       <div class='ll-card-media'>
         <img src='{img}' alt='{title}'/>
-        <span class='ll-card-type' style='background:{dt_color}'>{featured}</span>
+        <div class='ll-card-types'>{pills_html}</div>
         {fav_html}
       </div>
       <div class='ll-card-body'>

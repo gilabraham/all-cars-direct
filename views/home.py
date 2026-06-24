@@ -15,6 +15,12 @@ from lib.ui import card_html
 if "req_toast" in st.session_state:
     st.toast(st.session_state.pop("req_toast"), icon=":material/check_circle:")
 
+# Reset deal-type preferences carried over from the browse view — without
+# this, navigating Browse → Home would keep extra pills/badges from the
+# previous filter selection.
+st.session_state["_card_user_deals"] = []
+st.session_state.pop("_card_deal_pref", None)
+
 # ---------------------------------------------------------------- data
 df = scoring.enrich(db.fetch_df(active_only=True))
 active_deals = len(df)

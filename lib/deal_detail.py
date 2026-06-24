@@ -208,46 +208,44 @@ def show_detail(row: dict):
             unsafe_allow_html=True,
         )
 
-    # ---- Pricing tabs (Lease / Finance / Cash) — only deal types the dealer
-    # actually offers. Featured first so it's the default-selected tab; the
-    # rest follow the user's filter priority.
+    # ---- Pricing tabs (left) sit next to Vehicle & dealer (right) on desktop,
+    # mirroring a typical dealer PDP — price/options on the left, specs on the
+    # right. Streamlit stacks columns under ~640px so the modal still works
+    # on mobile.
     tab_order = [featured] + [d for d in pref_order
                               if d in available and d != featured]
-    # Each tab label carries its headline price so the customer can compare
-    # without clicking through. Matches the Coral-Springs PDP behavior.
     tab_labels = [f"{d}  ·  {_tab_headline(d, row)}" for d in tab_order]
-    tabs = st.tabs(tab_labels)
-    for tab, deal in zip(tabs, tab_order):
-        with tab:
-            st.markdown(
-                f"<div class='ll-md-deal-card'>{_pricing_block_html(deal, row)}</div>",
-                unsafe_allow_html=True,
-            )
-
-    # ---- Vehicle & dealer (shared, deal-type-agnostic).
-    vehicle_specs = [
-        ("Body type", _fmt_or_dash(row.get("body_type"))),
-        ("Fuel", _fmt_or_dash(row.get("fuel_type"))),
-        ("Transmission", _fmt_or_dash(row.get("transmission"))),
-        ("Exterior", _fmt_or_dash(row.get("exterior_color"))),
-        ("Interior", _fmt_or_dash(row.get("interior_color"))),
-        ("Location", _fmt_or_dash(row.get("location"))),
-        ("Dealer", _fmt_or_dash(row.get("dealer_name"))),
-    ]
-    rows_html = "".join(
-        f"<div class='ll-md-spec-row'><span class='k'>{k}</span>"
-        f"<span class='v'>{v}</span></div>"
-        for k, v in vehicle_specs
-    )
-    st.markdown(
-        "<div class='ll-md-specs'>"
-        f"<section class='ll-md-spec-card'>"
-        f"<h4>{icon('info', 16, '#2E8BFF')} Vehicle & dealer</h4>"
-        f"{rows_html}"
-        f"</section>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    deal_col, spec_col = st.columns([7, 5], gap="medium")
+    with deal_col:
+        tabs = st.tabs(tab_labels)
+        for tab, deal in zip(tabs, tab_order):
+            with tab:
+                st.markdown(
+                    f"<div class='ll-md-deal-card'>{_pricing_block_html(deal, row)}</div>",
+                    unsafe_allow_html=True,
+                )
+    with spec_col:
+        vehicle_specs = [
+            ("Body type", _fmt_or_dash(row.get("body_type"))),
+            ("Fuel", _fmt_or_dash(row.get("fuel_type"))),
+            ("Transmission", _fmt_or_dash(row.get("transmission"))),
+            ("Exterior", _fmt_or_dash(row.get("exterior_color"))),
+            ("Interior", _fmt_or_dash(row.get("interior_color"))),
+            ("Location", _fmt_or_dash(row.get("location"))),
+            ("Dealer", _fmt_or_dash(row.get("dealer_name"))),
+        ]
+        rows_html = "".join(
+            f"<div class='ll-md-spec-row'><span class='k'>{k}</span>"
+            f"<span class='v'>{v}</span></div>"
+            for k, v in vehicle_specs
+        )
+        st.markdown(
+            f"<section class='ll-md-spec-card ll-md-spec-card--tall'>"
+            f"<h4>{icon('info', 16, '#2E8BFF')} Vehicle & dealer</h4>"
+            f"{rows_html}"
+            f"</section>",
+            unsafe_allow_html=True,
+        )
 
     if row.get("description"):
         st.markdown(

@@ -245,13 +245,20 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 .ll-card-media img { width:100%; height:100%; object-fit: cover; display: block; transition: transform .35s ease; }
 .ll-card:hover .ll-card-media img { transform: scale(1.04); }
 
-/* Deal-type pill on the image (top-left) */
-.ll-card-type {
+/* Deal-type pills on the image (top-left). Wrapped in a flex row so multiple
+   pills can stack when the user has filtered for multiple deal types. */
+.ll-card-types {
   position: absolute; top: 12px; left: 12px;
+  display: inline-flex; gap: 5px; flex-wrap: wrap; max-width: calc(100% - 60px);
+}
+.ll-card-type {
   font-size: 11px; font-weight: 750; letter-spacing: .4px; text-transform: uppercase;
   padding: 5px 11px; border-radius: 999px; color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.16);
 }
+/* Non-featured pills sit slightly muted so the featured one still reads as
+   the "primary" offer the card's price is showing. */
+.ll-card-type.is-alt { opacity: 0.78; }
 /* Featured star (top-right) */
 .ll-card-fav {
   position: absolute; top: 11px; right: 11px;
@@ -415,6 +422,16 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   background: #fff; border: 1px solid var(--ll-border); border-radius: 12px;
   padding: 14px 16px;
 }
+/* Side-of-tabs variant — matches the deal-card shadow + padding so the two
+   columns read as equal-weight panels rather than the spec card feeling
+   smaller/secondary. The top margin lines its first row up under the
+   segmented tab strip. */
+.ll-md-spec-card--tall {
+  margin-top: 56px; padding: 22px 24px;
+  box-shadow: 0 1px 2px rgba(14, 42, 71, 0.04),
+              0 8px 24px -12px rgba(14, 42, 71, 0.10);
+}
+.ll-md-spec-card--tall .ll-md-spec-row { padding: 8px 0; font-size: 14px; }
 .ll-md-spec-card h4 {
   display: flex; align-items: center; gap: 8px;
   margin: 0 0 10px; padding-bottom: 8px;
