@@ -144,18 +144,29 @@ if sdf.empty:
     st.info("No sources yet. Add one above.")
     st.stop()
 
-cs1, cs2 = st.columns([1, 1])
+cs1, cs2, cs3 = st.columns([2, 1, 1])
 with cs1:
-    if st.button("Sync all enabled", type="primary", icon=":material/refresh:",
-                 disabled=not auth.CRAWLER_ENABLED):
-        with st.spinner("Crawling all enabled sources…"):
+    use_headless = st.session_state.get("src_headless", False)
+    label = ("Sync all enabled (deep, ~10–15 min)"
+             if use_headless else "Sync all enabled")
+    if st.button(label, type="primary", icon=":material/refresh:",
+                 disabled=not auth.CRAWLER_ENABLED, width="stretch"):
+        spinner_msg = ("Headless deep-crawl in progress — visiting each "
+                       "detail page 3× in a real browser…"
+                       if use_headless else "Crawling all enabled sources…")
+        with st.spinner(spinner_msg):
             for _, r in sdf[sdf["enabled"] == 1].iterrows():
-                crawler.crawl_source(int(r["id"]))
+                crawler.crawl_source(int(r["id"]), headless=use_headless)
         st.success("Crawled enabled sources.")
         st.rerun()
 with cs2:
-    respect = st.toggle("Respect robots.txt", value=True, key="src_respect_robots",
-                        help="Disable only for sites you have explicit permission to crawl.")
+    st.toggle("Respect robots.txt", value=True, key="src_respect_robots",
+              help="Disable only for sites you have explicit permission to crawl.")
+with cs3:
+    st.toggle("Headless (deep)", value=False, key="src_headless",
+              help="Render each PDP in a real Chrome browser to capture "
+                   "JavaScript-rendered lease, finance, MSRP, and photo "
+                   "gallery data. 10–15× slower than the standard crawl.")
 
 # Per-source rows.
 for _, r in sdf.iterrows():
@@ -223,9 +234,15 @@ for _, r in sdf.iterrows():
                 if st.button("Sync", key=f"src_sync_{sid}",
                              icon=":material/refresh:", width="stretch",
                              disabled=not auth.CRAWLER_ENABLED):
-                    with st.spinner(f"Crawling {r['name']}…"):
+                    use_h = st.session_state.get("src_headless", False)
+                    msg = (f"Headless deep-crawl on {r['name']} — "
+                           f"can take 5–15 minutes…"
+                           if use_h else f"Crawling {r['name']}…")
+                    with st.spinner(msg):
                         result = crawler.crawl_source(
-                            sid, respect_robots=st.session_state.get("src_respect_robots", True)
+                            sid,
+                            respect_robots=st.session_state.get("src_respect_robots", True),
+                            headless=use_h,
                         )
                     if result.status == "ok":
                         st.success(

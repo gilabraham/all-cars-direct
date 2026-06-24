@@ -139,7 +139,8 @@ def crawl_url(url: str, parser_kind: str = "generic",
               config: dict | str | None = None,
               max_follow: int = DEFAULT_MAX_FOLLOW,
               respect_robots: bool = True,
-              deep: bool = True) -> tuple[list[dict], int]:
+              deep: bool = True,
+              headless: bool = False) -> tuple[list[dict], int]:
     """Fetch ``url`` with the named parser and return (listings, pages_fetched).
 
     - If the parser returns ``{_follow_url: ...}`` markers (list-page mode),
@@ -180,8 +181,8 @@ def crawl_url(url: str, parser_kind: str = "generic",
             # Skip one bad detail page; keep going.
             continue
 
-    if deep:
-        for i, listing in enumerate(listings, start=1):
+    if deep and not headless:
+        for listing in listings:
             durl = listing.pop("detail_url", None)
             if not durl:
                 continue
@@ -196,13 +197,52 @@ def crawl_url(url: str, parser_kind: str = "generic",
                 # One slow / dead PDP shouldn't kill the whole crawl.
                 continue
 
+    if headless:
+        # Headless Chromium: 3 visits per VIN (cash / finance / lease) so we
+        # capture each deal type's pricing block. ~10-15s per VIN.
+        from .headless import browser_session, scrape_pdp_all_deal_types, render_pdp
+        import json as _json
+        with browser_session() as ctx:
+            for listing in listings:
+                durl = listing.pop("detail_url", None)
+                if not durl:
+                    continue
+                try:
+                    if respect_robots and not _allowed_by_robots(durl):
+                        continue
+                    extras = scrape_pdp_all_deal_types(ctx, durl)
+                    pages_fetched += 3   # cash + finance + lease visits
+                    # First, also pull static JSON-LD goodies from one render
+                    if extras:
+                        # Re-render once to get the static parser's extras too
+                        # (interior_color, transmission, bodyType, image)
+                        try:
+                            html_static = render_pdp(ctx, durl)
+                            _merge_pdp_into_listing(listing, _pdp_extras(html_static))
+                        except Exception:
+                            pass
+                    photos = extras.pop("photos", None)
+                    for k, v in extras.items():
+                        if v is not None and not listing.get(k):
+                            listing[k] = v
+                    if photos:
+                        listing["photos_json"] = _json.dumps(photos)
+                except Exception:
+                    continue
+
     return listings, pages_fetched
 
 
 def crawl_source(source_id: int,
                  respect_robots: bool = True,
-                 max_follow: int = DEFAULT_MAX_FOLLOW) -> CrawlResult:
-    """Run the configured crawler for ``source_id`` and persist results."""
+                 max_follow: int = DEFAULT_MAX_FOLLOW,
+                 headless: bool = False) -> CrawlResult:
+    """Run the configured crawler for ``source_id`` and persist results.
+
+    ``headless=True`` switches the PDP deep-crawl from plain HTTP to a real
+    headless browser, which captures JavaScript-rendered pricing
+    (lease / finance / cash ladders, MSRP, multiple photos). 3-5x slower.
+    """
     source = db.get_crawl_source(source_id)
     if not source:
         return CrawlResult(status="error", error=f"source {source_id} not found")
@@ -216,6 +256,7 @@ def crawl_source(source_id: int,
             config=source.get("config"),
             max_follow=max_follow,
             respect_robots=respect_robots,
+            headless=headless,
         )
         result.fetched_pages = pages
         result.listings = listings

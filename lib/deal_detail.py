@@ -187,11 +187,55 @@ def show_detail(row: dict):
             f"</section>"
         )
 
+    # Build an "All deal options" card when the headless scrape captured
+    # lease / finance numbers in addition to cash.
+    cash_p = row.get("cash_price") or row.get("selling_price")
+    has_lease = _has_value(row.get("lease_monthly"))
+    has_finance = _has_value(row.get("finance_monthly"))
+    options_card_html = ""
+    if has_lease or has_finance:
+        rows = []
+        if cash_p:
+            rows.append(("Cash", money(cash_p), ""))
+        if has_lease:
+            extra = []
+            if _has_value(row.get("lease_term_months")):
+                extra.append(f"{int(row['lease_term_months'])} mo")
+            if _has_value(row.get("lease_down_payment")):
+                extra.append(f"{money(row['lease_down_payment'])} due")
+            rows.append(("Lease", f"{money(row['lease_monthly'])}/mo",
+                         " · ".join(extra)))
+        if has_finance:
+            extra = []
+            if _has_value(row.get("finance_term_months")):
+                extra.append(f"{int(row['finance_term_months'])} mo")
+            if _has_value(row.get("finance_down_payment")):
+                extra.append(f"{money(row['finance_down_payment'])} down")
+            if _has_value(row.get("finance_apr")):
+                extra.append(f"{row['finance_apr']}% APR")
+            rows.append(("Finance", f"{money(row['finance_monthly'])}/mo",
+                         " · ".join(extra)))
+        opt_rows_html = "".join(
+            f"<div class='ll-md-spec-row'>"
+            f"<span class='k'>{label}</span>"
+            f"<span class='v'>{amt}"
+            + (f" <span style='color:#6b7686;font-weight:500;font-size:12px'>· {sub}</span>" if sub else "")
+            + f"</span></div>"
+            for label, amt, sub in rows
+        )
+        options_card_html = (
+            f"<section class='ll-md-spec-card'>"
+            f"<h4>{icon('dollar-sign', 16, '#2E8BFF')} All deal options</h4>"
+            f"{opt_rows_html}"
+            f"</section>"
+        )
+
     st.markdown(
         "<div class='ll-md-specs'>"
         + _spec_card("Pricing", "tag", pricing_specs)
         + _spec_card("Terms", "percent", terms_specs)
         + _spec_card("Vehicle & dealer", "info", vehicle_specs)
+        + options_card_html
         + "</div>",
         unsafe_allow_html=True,
     )

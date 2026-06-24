@@ -37,6 +37,16 @@ EDITABLE_COLUMNS = [
     "exterior_color",
     "interior_color",
     "transmission",
+    # Per-deal-type pricing (when the dealer publishes multiple offers per VIN).
+    "cash_price",
+    "lease_monthly",
+    "lease_term_months",
+    "lease_down_payment",
+    "finance_monthly",
+    "finance_term_months",
+    "finance_down_payment",
+    "finance_apr",
+    "photos_json",
     "location",
     "dealer_name",
     "image_url",
@@ -56,6 +66,15 @@ NUMERIC_COLUMNS = {
     "money_factor": float,
     "residual_percent": float,
     "featured": int,
+    # Per-deal-type pricing (headless PDP scrape).
+    "cash_price": float,
+    "lease_monthly": float,
+    "lease_term_months": int,
+    "lease_down_payment": float,
+    "finance_monthly": float,
+    "finance_term_months": int,
+    "finance_down_payment": float,
+    "finance_apr": float,
 }
 
 DEAL_TYPES = ["Lease", "Finance", "Cash"]
@@ -150,6 +169,20 @@ _LISTINGS_ADDITIONS = [
     ("last_seen_at", "TEXT"),
     ("interior_color", "TEXT"),
     ("transmission", "TEXT"),
+    # Per-deal-type pricing captured from headless PDP scrape. The legacy
+    # `monthly_payment` / `term_months` / `down_payment` columns hold the
+    # *primary* deal type's numbers (whatever ``deal_type`` is set to); these
+    # additional columns hold the same fields for the other two types so we
+    # can show Cash + Lease + Finance side by side in the detail modal.
+    ("lease_monthly", "REAL"),
+    ("lease_term_months", "INTEGER"),
+    ("lease_down_payment", "REAL"),
+    ("finance_monthly", "REAL"),
+    ("finance_term_months", "INTEGER"),
+    ("finance_down_payment", "REAL"),
+    ("finance_apr", "REAL"),
+    ("cash_price", "REAL"),
+    ("photos_json", "TEXT"),     # JSON list of additional dealer photos
 ]
 # Columns added to `crawl_sources` via lightweight migrations on init.
 _SOURCES_ADDITIONS = [

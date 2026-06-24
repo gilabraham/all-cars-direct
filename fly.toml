@@ -39,5 +39,8 @@ primary_region = "iad"   # Ashburn, VA — closest to most US East dealers.
   path = "/_stcore/health"       # Streamlit's built-in health endpoint
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "1gb"
+  # 2 CPUs / 2 GB — Chromium needs ~300 MB resident, plus Streamlit/Python
+  # ~250 MB. 1 GB was tight when a headless crawl ran concurrently with
+  # serving traffic.
+  size = "shared-cpu-2x"
+  memory = "2gb"

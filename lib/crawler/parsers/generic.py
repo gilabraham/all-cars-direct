@@ -45,21 +45,36 @@ _BODY_ALIASES = {
     "suv": "SUV", "crossover": "SUV", "sport utility": "SUV",
     "sport-utility": "SUV", "utility": "SUV", "sport utility vehicle": "SUV",
     "sedan": "Sedan", "saloon": "Sedan", "4-door sedan": "Sedan",
+    "4dr car": "Sedan", "4 dr car": "Sedan", "4dr sedan": "Sedan",
+    "4 door": "Sedan", "4-door": "Sedan",
     "truck": "Truck", "pickup": "Truck", "pickup truck": "Truck",
     "pickup-truck": "Truck", "crew cab": "Truck", "extended cab": "Truck",
     "coupe": "Coupe", "coupé": "Coupe", "2-door coupe": "Coupe",
+    "2dr car": "Coupe", "2 dr car": "Coupe", "2dr coupe": "Coupe",
     "convertible": "Convertible", "cabriolet": "Convertible", "roadster": "Convertible",
     "hatchback": "Hatchback", "hatch": "Hatchback", "5-door hatchback": "Hatchback",
     "wagon": "Wagon", "estate": "Wagon", "station wagon": "Wagon",
     "minivan": "Minivan", "van": "Minivan", "passenger van": "Minivan",
     "mini-van": "Minivan", "mini van": "Minivan",
+    "mini-van, passenger": "Minivan", "minivan, passenger": "Minivan",
+    "mini-van passenger": "Minivan", "passenger mini-van": "Minivan",
 }
 
 
 def _normalize_body(text: str) -> str:
     if not text:
         return ""
+    # Lower-case + collapse whitespace, then strip commas/extra punctuation
+    # so dealer strings like "Mini-van, Passenger" map cleanly.
     key = re.sub(r"\s+", " ", str(text).strip().lower())
+    # Try the raw key first; if no match, try with commas removed
+    if key in _BODY_ALIASES:
+        return _BODY_ALIASES[key]
+    cleaned = re.sub(r"[,]+", "", key)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if cleaned in _BODY_ALIASES:
+        return _BODY_ALIASES[cleaned]
+    key = cleaned  # fall through to default-title-case path below
     return _BODY_ALIASES.get(key, str(text).strip().title())
 
 
