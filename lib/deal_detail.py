@@ -167,7 +167,9 @@ def show_detail(row: dict):
     vehicle_specs = [
         ("Body type", _fmt_or_dash(row.get("body_type"))),
         ("Fuel", _fmt_or_dash(row.get("fuel_type"))),
-        ("Color", _fmt_or_dash(row.get("exterior_color"))),
+        ("Transmission", _fmt_or_dash(row.get("transmission"))),
+        ("Exterior", _fmt_or_dash(row.get("exterior_color"))),
+        ("Interior", _fmt_or_dash(row.get("interior_color"))),
         ("Location", _fmt_or_dash(row.get("location"))),
         ("Dealer", _fmt_or_dash(row.get("dealer_name"))),
     ]

@@ -11,11 +11,13 @@ import requests
 
 from .. import db
 from .parsers import PARSERS
+from .parsers.generic import _flatten_jsonld, _money, _node_type, _normalize_body, _pick_image, _VEHICLE_TYPES, _PRODUCT_TYPES
 
 USER_AGENT = "AllCarsDirectBot/1.0 (+https://allcarsdirect.example/bot)"
 DEFAULT_TIMEOUT = 15
 DEFAULT_MAX_FOLLOW = 25
-DEFAULT_DELAY = 1.0  # seconds between requests when following list links
+DEFAULT_DELAY = 1.0     # seconds between requests when following list links
+DEFAULT_PDP_DELAY = 0.6 # seconds between detail-page requests (kinder to dealer)
 
 
 @dataclass
@@ -47,14 +49,104 @@ def _fetch(url: str, timeout: int = DEFAULT_TIMEOUT) -> str:
     return resp.text
 
 
+def _pdp_extras(html: str) -> dict:
+    """Return extra fields extractable from a vehicle detail (PDP) page.
+
+    Coral-Springs-style PDPs publish bodyType, interior color, transmission,
+    and a different ``offers.price`` (typically MSRP, before manufacturer
+    rebate) in their JSON-LD. We only fill in what the listings-page parser
+    missed — never overwrite a value already set.
+
+    Many dealer PDPs render MSRP/savings/multiple photos via JavaScript,
+    which we don't see in the static HTML fetch. Headless-browser scrape
+    would be required to capture those.
+    """
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, "lxml")
+    node = None
+    for n in _flatten_jsonld(soup):
+        if _node_type(n) & (_VEHICLE_TYPES | _PRODUCT_TYPES):
+            node = n
+            break
+    if not node:
+        return {}
+
+    offers = node.get("offers") or {}
+    if isinstance(offers, list):
+        offers = offers[0] if offers else {}
+
+    extras: dict = {}
+
+    # Body type — PDPs often have this where the listings page doesn't.
+    body = _normalize_body(node.get("bodyType") or "")
+    if body:
+        extras["body_type"] = body
+
+    # Interior color, transmission — useful spec details.
+    if node.get("vehicleInteriorColor"):
+        extras["interior_color"] = node["vehicleInteriorColor"].strip()
+    if node.get("vehicleTransmission"):
+        extras["transmission"] = node["vehicleTransmission"].strip()
+
+    # Exterior color (in case the listings page missed it).
+    if node.get("color"):
+        extras["exterior_color"] = node["color"].strip()
+
+    # PDP offers.price is typically MSRP (before discounts); listings price
+    # is post-rebate selling price. If they differ, treat the higher as MSRP.
+    pdp_price = _money(offers.get("price")) if isinstance(offers, dict) else None
+    if pdp_price:
+        extras["_pdp_price"] = pdp_price
+
+    # Image (when the listings page provided a thin stock render, PDP may
+    # have a better one).
+    img = _pick_image(node.get("image") or node.get("photo"))
+    if img:
+        extras["_pdp_image"] = img
+
+    # Longer description if present.
+    desc = (node.get("description") or "")
+    if desc and len(desc) > 20:
+        extras["description"] = desc[:600]
+
+    return extras
+
+
+def _merge_pdp_into_listing(listing: dict, extras: dict) -> None:
+    """Fill blanks in ``listing`` from PDP ``extras`` (no overwrite, except
+    that a larger PDP price is treated as MSRP if listing had none)."""
+    for k in ("body_type", "interior_color", "transmission", "exterior_color"):
+        if extras.get(k) and not listing.get(k):
+            listing[k] = extras[k]
+    # Description: PDPs sometimes have a richer one — only swap if listing's
+    # is shorter.
+    pdp_desc = extras.get("description")
+    if pdp_desc and len(pdp_desc) > len(listing.get("description") or ""):
+        listing["description"] = pdp_desc
+    # MSRP: if PDP price is higher than the listing's selling price, treat
+    # the PDP value as MSRP (the "before incentive" sticker price).
+    pdp_price = extras.get("_pdp_price")
+    sell = listing.get("selling_price")
+    if pdp_price and sell and pdp_price > sell and not listing.get("msrp"):
+        listing["msrp"] = pdp_price
+    # Prefer the PDP image — it's usually a real dealer-uploaded photo,
+    # while the listings page tends to use the generic EvoxImage stock render.
+    if extras.get("_pdp_image"):
+        listing["image_url"] = extras["_pdp_image"]
+
+
 def crawl_url(url: str, parser_kind: str = "generic",
               config: dict | str | None = None,
               max_follow: int = DEFAULT_MAX_FOLLOW,
-              respect_robots: bool = True) -> tuple[list[dict], int]:
+              respect_robots: bool = True,
+              deep: bool = True) -> tuple[list[dict], int]:
     """Fetch ``url`` with the named parser and return (listings, pages_fetched).
 
-    If the parser returns ``{_follow_url: ...}`` markers (list-page mode), each
-    follow URL is fetched with the same parser, up to ``max_follow``.
+    - If the parser returns ``{_follow_url: ...}`` markers (list-page mode),
+      each follow URL is fetched with the same parser, up to ``max_follow``.
+    - If ``deep=True`` (default), each parsed listing's ``detail_url`` is
+      ALSO fetched and merged in for fields the listings page didn't expose
+      (interior color, transmission, MSRP, etc.). Adds ~0.6s per listing.
     """
     if respect_robots and not _allowed_by_robots(url):
         raise PermissionError(f"robots.txt disallows fetching {url}")
@@ -87,6 +179,23 @@ def crawl_url(url: str, parser_kind: str = "generic",
         except Exception:
             # Skip one bad detail page; keep going.
             continue
+
+    if deep:
+        for i, listing in enumerate(listings, start=1):
+            durl = listing.pop("detail_url", None)
+            if not durl:
+                continue
+            try:
+                if respect_robots and not _allowed_by_robots(durl):
+                    continue
+                pdp_html = _fetch(durl)
+                pages_fetched += 1
+                _merge_pdp_into_listing(listing, _pdp_extras(pdp_html))
+                time.sleep(DEFAULT_PDP_DELAY)
+            except Exception:
+                # One slow / dead PDP shouldn't kill the whole crawl.
+                continue
+
     return listings, pages_fetched
 
 

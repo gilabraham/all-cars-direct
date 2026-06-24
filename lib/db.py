@@ -35,6 +35,8 @@ EDITABLE_COLUMNS = [
     "money_factor",
     "residual_percent",
     "exterior_color",
+    "interior_color",
+    "transmission",
     "location",
     "dealer_name",
     "image_url",
@@ -146,6 +148,8 @@ _LISTINGS_ADDITIONS = [
     ("crawl_source_id", "INTEGER"),
     ("external_id", "TEXT"),
     ("last_seen_at", "TEXT"),
+    ("interior_color", "TEXT"),
+    ("transmission", "TEXT"),
 ]
 # Columns added to `crawl_sources` via lightweight migrations on init.
 _SOURCES_ADDITIONS = [
