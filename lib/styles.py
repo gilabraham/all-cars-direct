@@ -223,13 +223,27 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   overflow: hidden !important;
   box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   transition: transform .18s ease, box-shadow .18s ease, border-color .15s;
+  /* Stretch to the column's full height so every card in a row lines up. */
+  height: 100%;
+  display: flex; flex-direction: column;
 }
 [class*="st-key-cardwrap_"]:hover {
   transform: translateY(-4px);
   box-shadow: 0 24px 40px -22px rgba(15,23,42,0.30), 0 4px 12px -8px rgba(15,23,42,0.10);
   border-color: #d6dbe5;
 }
-[class*="st-key-cardwrap_"] > div[data-testid="stVerticalBlock"] { gap: 0 !important; }
+[class*="st-key-cardwrap_"] > div[data-testid="stVerticalBlock"] {
+  gap: 0 !important;
+  flex: 1;                /* let the inner vertical block stretch... */
+  display: flex; flex-direction: column;
+}
+/* ...so the markdown-rendered .ll-card can claim the remaining height
+   and push the View-details button to the wrap's bottom edge. */
+[class*="st-key-cardwrap_"] [data-testid="stMarkdown"] { flex: 1; display: flex; }
+[class*="st-key-cardwrap_"] [data-testid="stMarkdown"] > div { flex: 1; display: flex; }
+[class*="st-key-cardwrap_"] .ll-card { flex: 1; }
+/* Streamlit's column container needs to opt into stretching its children. */
+[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] { height: 100%; }
 /* The Details button becomes the card's bottom edge — square corners merging
    into the rounded container, full width, no extra margin. */
 [class*="st-key-cardwrap_"] [data-testid="stButton"] { margin: 0 !important; }
