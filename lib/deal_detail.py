@@ -170,6 +170,7 @@ def _render_gallery(photos: list[str], alt: str) -> None:
     sandbox where JS can run."""
     if not photos:
         return
+    has_strip = len(photos) > 1
     photos_js = json.dumps(photos)
     thumbs_html = "".join(
         f"<button class='thumb{(' is-active' if i == 0 else '')}' "
@@ -177,16 +178,21 @@ def _render_gallery(photos: list[str], alt: str) -> None:
         f"<img src='{p}' loading='lazy' alt=''></button>"
         for i, p in enumerate(photos)
     )
+    thumbs_block = (
+        f"<div class='thumbs' id='thumbs'>{thumbs_html}</div>"
+        if has_strip else ""
+    )
     components.html(
         f"""
 <style>
   * {{ box-sizing: border-box; }}
-  body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
+  html, body {{ margin: 0; padding: 0; }}
+  body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
   .gallery {{ display: flex; flex-direction: column; gap: 10px; }}
   .hero {{
     background: linear-gradient(180deg, #f6f8fb 0%, #eef2f8 100%);
     border-radius: 16px; padding: 12px; border: 1px solid #e4ebf3;
-    height: 260px; display: flex; align-items: center; justify-content: center;
+    height: 240px; display: flex; align-items: center; justify-content: center;
     box-shadow: 0 1px 2px rgba(14, 42, 71, 0.04);
   }}
   .hero img {{
@@ -194,13 +200,14 @@ def _render_gallery(photos: list[str], alt: str) -> None:
     transition: opacity .18s ease;
   }}
   .thumbs {{
-    display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px;
+    display: flex; gap: 8px; overflow-x: auto;
+    padding: 2px 2px 10px;
     scrollbar-width: thin; scrollbar-color: #c9d2e0 transparent;
   }}
   .thumbs::-webkit-scrollbar {{ height: 6px; }}
   .thumbs::-webkit-scrollbar-thumb {{ background: #c9d2e0; border-radius: 999px; }}
   .thumb {{
-    flex: 0 0 auto; width: 70px; height: 52px; padding: 0;
+    flex: 0 0 auto; width: 72px; height: 54px; padding: 0;
     border: 1.5px solid #e4ebf3; border-radius: 8px;
     overflow: hidden; background: #eef2f8; cursor: pointer;
     transition: border-color .15s ease, transform .15s ease;
@@ -213,7 +220,7 @@ def _render_gallery(photos: list[str], alt: str) -> None:
   <div class='hero'>
     <img id='hero-img' src='{photos[0]}' alt='{alt}'>
   </div>
-  <div class='thumbs' id='thumbs'>{thumbs_html}</div>
+  {thumbs_block}
 </div>
 <script>
   const PHOTOS = {photos_js};
@@ -231,7 +238,10 @@ def _render_gallery(photos: list[str], alt: str) -> None:
   }});
 </script>
 """,
-        height=350 if len(photos) > 1 else 290,
+        # Hero box (240 + 12*2 padding + 2 border = 266) plus optional 10 gap
+        # + 54 thumb + 10 bottom padding + 6 scrollbar = 80. Buffer of 8px so
+        # nothing clips on browsers that report subpixel rounding differently.
+        height=354 if has_strip else 274,
     )
 
 
