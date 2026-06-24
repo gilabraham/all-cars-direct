@@ -49,13 +49,20 @@ def browser_session(headless: bool = True, timeout_ms: int = 30000):
             browser.close()
 
 
-def render_pdp(context, url: str, wait_extra_ms: int = 1500) -> str:
-    """Fetch ``url`` in a real browser tab, wait for network idle + a brief
-    settle period, return the fully-rendered HTML."""
+def render_pdp(context, url: str, settle_ms: int = 3000) -> str:
+    """Fetch ``url`` in a real browser tab, give the SPA a few seconds to
+    hydrate the pricing widgets, return the rendered HTML.
+
+    Uses ``wait_until="domcontentloaded"`` instead of ``"networkidle"`` —
+    Coral-Springs-style pages keep polling analytics endpoints, so
+    ``networkidle`` never fires and every visit times out at the 30s limit.
+    A fixed 3s settle window lets the JS pricing widgets populate without
+    blocking on long-tail analytics traffic.
+    """
     page = context.new_page()
     try:
-        page.goto(url, wait_until="networkidle")
-        page.wait_for_timeout(wait_extra_ms)
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        page.wait_for_timeout(settle_ms)
         return page.content()
     finally:
         page.close()
