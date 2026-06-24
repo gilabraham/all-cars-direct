@@ -181,21 +181,74 @@ def _vehicle_from_jsonld(node: dict, url: str) -> dict | None:
     if isinstance(miles, dict):
         miles = miles.get("value")
 
+    # Fuel-type fallback: many dealers omit the schema.org field but the model
+    # name reveals it (Tesla Model 3, GMC Sierra EV, Honda Accord Hybrid...).
+    if not fuel:
+        text = f"{name} {model}".lower()
+        if re.search(r"\b(ev|electric)\b", text):
+            fuel = "Electric"
+        elif "plug-in" in text or "phev" in text:
+            fuel = "Plug-in Hybrid"
+        elif "hybrid" in text:
+            fuel = "Hybrid"
+        elif "diesel" in text:
+            fuel = "Diesel"
+        else:
+            fuel = "Gas"
+
+    # Dealers sometimes embed monthly payment + term inside the description:
+    #   "New 2026 GMC Sierra 1500 - cash 537.01 Month 84 Months"
+    # Parse it so the data card has more to show even on "cash" listings.
+    monthly_payment = None
+    term_months = None
+    desc_raw = node.get("description") or (offers.get("description") if isinstance(offers, dict) else "")
+    if desc_raw:
+        m = re.search(r"(\d{2,4}(?:\.\d{1,2})?)\s*(?:/\s*mo|month)\b[^\d]+(\d{1,3})\s*months?",
+                      desc_raw, flags=re.IGNORECASE)
+        if m:
+            try:
+                monthly_payment = float(m.group(1))
+                term_months = int(m.group(2))
+            except (TypeError, ValueError):
+                pass
+
+    # Trim defaults — dealer sites stuff this into the offer name
+    # ("2026 GMC Sierra 1500 Pro" → trim "Pro"). Pull whatever comes after make+model.
+    trim = ""
+    name_field = name or ""
+    if isinstance(offers, dict):
+        offer_name = (offers.get("itemOffered", {}) or {}).get("name") if isinstance(
+            offers.get("itemOffered"), dict) else ""
+        name_field = offer_name or name_field
+    if name_field and brand and model:
+        rest = name_field
+        for chunk in (str(year or ""), str(brand), str(model)):
+            if chunk:
+                rest = re.sub(rf"\b{re.escape(chunk)}\b", "", rest, count=1)
+        trim = re.sub(r"\s+", " ", rest).strip(" -")
+
+    detail_url = offers.get("url") if isinstance(offers, dict) else ""
+
     return {
         "external_id": str(node.get("@id") or node.get("vehicleIdentificationNumber") or url),
         "make": str(brand).strip() if brand else "",
         "model": str(model).strip() if model else "",
         "year": _int(year),
+        "trim": trim or None,
         "body_type": str(body).strip() or None,
         "fuel_type": str(fuel).strip() or None,
         "deal_type": "Cash",
         "selling_price": _money(price),
         "msrp": _money(node.get("msrp") or node.get("listPrice")),
+        "monthly_payment": monthly_payment,
+        "term_months": term_months,
         "annual_mileage": _int(miles),
+        "exterior_color": (node.get("color") or "").strip() or None,
         "image_url": image or "",
         "description": (node.get("description") or "")[:600],
         "location": (offers.get("areaServed") if isinstance(offers, dict) else "") or "",
         "dealer_name": (offers.get("seller", {}) or {}).get("name", "") if isinstance(offers, dict) else "",
+        "detail_url": detail_url or None,
     }
 
 
