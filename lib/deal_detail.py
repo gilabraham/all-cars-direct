@@ -10,7 +10,7 @@ import streamlit.components.v1 as components
 from lib import db, mailer, scoring
 from lib.icons import icon
 from lib.images import image_src
-from lib.ui import deal_type_color, money, num, pct, title_for
+from lib.ui import available_deal_types, deal_type_color, money, num, pct, title_for
 
 
 def _has_value(value) -> bool:
@@ -55,11 +55,73 @@ _SCROLL_RESET_JS = """
 """
 
 
+def _pricing_block_html(deal: str, row: dict) -> str:
+    """One pricing card per deal type — mirrors the Coral-Springs PDP layout:
+    a big primary price on top, supporting terms below."""
+    cash_p = row.get("cash_price") or row.get("selling_price")
+    if deal == "Lease":
+        amt = money(row.get("lease_monthly"))
+        unit = "/mo lease"
+        term = row.get("lease_term_months")
+        down = row.get("lease_down_payment")
+        rows = []
+        if _has_value(term):
+            rows.append(("Term", f"{int(term)} months"))
+        if _has_value(down):
+            rows.append(("Due at signing", money(down)))
+        if _has_value(row.get("annual_mileage")):
+            rows.append(("Annual mileage", num(row.get("annual_mileage"))))
+        if _has_value(row.get("residual_percent")):
+            rows.append(("Residual", pct(row.get("residual_percent"))))
+        if _has_value(row.get("money_factor")):
+            rows.append(("Money factor", _fmt_or_dash(row.get("money_factor"))))
+    elif deal == "Finance":
+        amt = money(row.get("finance_monthly"))
+        unit = "/mo finance"
+        term = row.get("finance_term_months")
+        down = row.get("finance_down_payment")
+        apr = row.get("finance_apr")
+        rows = []
+        if _has_value(term):
+            rows.append(("Term", f"{int(term)} months"))
+        if _has_value(down):
+            rows.append(("Down payment", money(down)))
+        if _has_value(apr):
+            rows.append(("APR", f"{apr:.2f}%"))
+        if _has_value(row.get("msrp")):
+            rows.append(("MSRP", money(row.get("msrp"))))
+        if _has_value(cash_p):
+            rows.append(("Selling price", money(cash_p)))
+    else:  # Cash
+        amt = money(cash_p)
+        unit = "cash price"
+        disc = scoring.discount_percent(cash_p, row.get("msrp"))
+        rows = []
+        if _has_value(row.get("msrp")):
+            rows.append(("MSRP", money(row.get("msrp"))))
+        if _has_value(cash_p):
+            rows.append(("Selling price", money(cash_p)))
+        if disc is not None:
+            rows.append(("Discount off MSRP", pct(disc)))
+
+    rows_html = "".join(
+        f"<div class='ll-md-spec-row'><span class='k'>{k}</span>"
+        f"<span class='v'>{v}</span></div>"
+        for k, v in rows
+    ) or "<div class='ll-md-spec-row'><span class='k'>—</span></div>"
+
+    return (
+        f"<div class='ll-md-deal-price'>"
+        f"<span class='ll-md-deal-amt'>{amt}</span>"
+        f"<span class='ll-md-deal-unit'>{unit}</span>"
+        f"</div>"
+        f"<div class='ll-md-deal-rows'>{rows_html}</div>"
+    )
+
+
 @st.dialog("Deal details", width="large")
 def show_detail(row: dict):
     components.html(_SCROLL_RESET_JS, height=0)
-    dt = row.get("deal_type") or "Lease"
-    dt_color = deal_type_color(dt)
     rating_label, rating_color = scoring.rating(
         row.get("monthly_payment"), row.get("down_payment"),
         row.get("term_months"), row.get("msrp"),
@@ -68,16 +130,13 @@ def show_detail(row: dict):
         row.get("monthly_payment"), row.get("down_payment"),
         row.get("term_months"), row.get("msrp"),
     )
-    eff = scoring.effective_monthly(
-        row.get("monthly_payment"), row.get("down_payment"), row.get("term_months"),
-    )
-    pct_msrp = scoring.percent_of_msrp(
-        row.get("monthly_payment"), row.get("down_payment"),
-        row.get("term_months"), row.get("msrp"),
-    )
-    discount = scoring.discount_percent(row.get("selling_price"), row.get("msrp"))
 
-    # ---- Hero: image on the left, headline + price on the right.
+    # Featured deal — same priority the card uses: Lease > Finance > Cash.
+    available = available_deal_types(row) or ["Cash"]
+    featured = next((d for d in ("Lease", "Finance", "Cash") if d in available), "Cash")
+    dt_color = deal_type_color(featured)
+
+    # ---- Hero: image on the left, headline + chips on the right.
     img_col, info_col = st.columns([5, 7], gap="medium")
     with img_col:
         img_url = image_src(
@@ -94,7 +153,7 @@ def show_detail(row: dict):
     with info_col:
         chips = (
             f"<span class='ll-md-chip' style='background:{dt_color}1f;color:{dt_color};"
-            f"border-color:{dt_color}40;'>{dt}</span>"
+            f"border-color:{dt_color}40;'>{featured}</span>"
             f"<span class='ll-md-chip' style='background:{rating_color}1f;color:{rating_color};"
             f"border-color:{rating_color}40;'>"
             f"{icon('star', 12, rating_color, fill=rating_color)} {rating_label}"
@@ -103,26 +162,6 @@ def show_detail(row: dict):
         sub_bits = [str(x) for x in (row.get("trim"), row.get("body_type"),
                     row.get("fuel_type"), row.get("exterior_color")) if x]
         subtitle = " · ".join(sub_bits)
-
-        if dt == "Cash":
-            primary_amt = money(row.get("selling_price"))
-            primary_unit = "cash price"
-            secondary_bits = []
-            if row.get("msrp"):
-                secondary_bits.append(f"MSRP {money(row.get('msrp'))}")
-            if discount is not None:
-                secondary_bits.append(f"{pct(discount)} off")
-        else:
-            primary_amt = money(row.get("monthly_payment"))
-            primary_unit = f"/mo {dt.lower()}"
-            secondary_bits = []
-            if eff is not None:
-                secondary_bits.append(f"{money(eff)} effective")
-            if _has_value(row.get("term_months")):
-                secondary_bits.append(f"{int(row['term_months'])} mo")
-            if _has_value(row.get("down_payment")):
-                secondary_bits.append(f"{money(row.get('down_payment'))} due")
-        secondary = "  ·  ".join(secondary_bits) if secondary_bits else ""
 
         loc_bits = []
         if row.get("dealer_name"):
@@ -138,32 +177,23 @@ def show_detail(row: dict):
             f"<div class='ll-md-chips'>{chips}</div>"
             f"<h2 class='ll-md-title'>{title_for(row)}</h2>"
             + (f"<p class='ll-md-sub'>{subtitle}</p>" if subtitle else "")
-            + f"<div class='ll-md-price'>"
-              f"<div class='ll-md-price-row'>"
-              f"<span class='ll-md-price-amt'>{primary_amt}</span>"
-              f"<span class='ll-md-price-unit'>{primary_unit}</span>"
-              f"</div>"
-              + (f"<div class='ll-md-price-sub'>{secondary}</div>" if secondary else "")
-              + f"</div>"
-              + loc_html,
+            + loc_html,
             unsafe_allow_html=True,
         )
 
-    # ---- Spec sections (three grouped cards).
-    pricing_specs = [
-        ("MSRP", money(row.get("msrp"))),
-        ("Selling price", money(row.get("selling_price"))),
-        ("Discount off MSRP", pct(discount)),
-        ("% of MSRP / mo", pct(pct_msrp)),
-    ]
-    terms_specs = [
-        ("Term", f"{int(row['term_months'])} months" if _has_value(row.get("term_months")) else "—"),
-        ("Annual mileage", num(row.get("annual_mileage"))),
-        ("Due at signing", money(row.get("down_payment"))),
-        ("Money factor",
-         _fmt_or_dash(row.get("money_factor")) if row.get("money_factor") else "—"),
-        ("Residual", pct(row.get("residual_percent"))),
-    ]
+    # ---- Pricing tabs (Lease / Finance / Cash) — only ones the dealer offers.
+    # Featured deal goes first so it's the default-selected tab.
+    tab_order = [featured] + [d for d in ("Lease", "Finance", "Cash")
+                              if d in available and d != featured]
+    tabs = st.tabs(tab_order)
+    for tab, deal in zip(tabs, tab_order):
+        with tab:
+            st.markdown(
+                f"<div class='ll-md-deal-card'>{_pricing_block_html(deal, row)}</div>",
+                unsafe_allow_html=True,
+            )
+
+    # ---- Vehicle & dealer (shared, deal-type-agnostic).
     vehicle_specs = [
         ("Body type", _fmt_or_dash(row.get("body_type"))),
         ("Fuel", _fmt_or_dash(row.get("fuel_type"))),
@@ -173,70 +203,18 @@ def show_detail(row: dict):
         ("Location", _fmt_or_dash(row.get("location"))),
         ("Dealer", _fmt_or_dash(row.get("dealer_name"))),
     ]
-
-    def _spec_card(title: str, ic: str, items) -> str:
-        rows_html = "".join(
-            f"<div class='ll-md-spec-row'><span class='k'>{k}</span>"
-            f"<span class='v'>{v}</span></div>"
-            for k, v in items
-        )
-        return (
-            f"<section class='ll-md-spec-card'>"
-            f"<h4>{icon(ic, 16, '#2E8BFF')} {title}</h4>"
-            f"{rows_html}"
-            f"</section>"
-        )
-
-    # Build an "All deal options" card when the headless scrape captured
-    # lease / finance numbers in addition to cash.
-    cash_p = row.get("cash_price") or row.get("selling_price")
-    has_lease = _has_value(row.get("lease_monthly"))
-    has_finance = _has_value(row.get("finance_monthly"))
-    options_card_html = ""
-    if has_lease or has_finance:
-        rows = []
-        if cash_p:
-            rows.append(("Cash", money(cash_p), ""))
-        if has_lease:
-            extra = []
-            if _has_value(row.get("lease_term_months")):
-                extra.append(f"{int(row['lease_term_months'])} mo")
-            if _has_value(row.get("lease_down_payment")):
-                extra.append(f"{money(row['lease_down_payment'])} due")
-            rows.append(("Lease", f"{money(row['lease_monthly'])}/mo",
-                         " · ".join(extra)))
-        if has_finance:
-            extra = []
-            if _has_value(row.get("finance_term_months")):
-                extra.append(f"{int(row['finance_term_months'])} mo")
-            if _has_value(row.get("finance_down_payment")):
-                extra.append(f"{money(row['finance_down_payment'])} down")
-            if _has_value(row.get("finance_apr")):
-                extra.append(f"{row['finance_apr']}% APR")
-            rows.append(("Finance", f"{money(row['finance_monthly'])}/mo",
-                         " · ".join(extra)))
-        opt_rows_html = "".join(
-            f"<div class='ll-md-spec-row'>"
-            f"<span class='k'>{label}</span>"
-            f"<span class='v'>{amt}"
-            + (f" <span style='color:#6b7686;font-weight:500;font-size:12px'>· {sub}</span>" if sub else "")
-            + f"</span></div>"
-            for label, amt, sub in rows
-        )
-        options_card_html = (
-            f"<section class='ll-md-spec-card'>"
-            f"<h4>{icon('dollar-sign', 16, '#2E8BFF')} All deal options</h4>"
-            f"{opt_rows_html}"
-            f"</section>"
-        )
-
+    rows_html = "".join(
+        f"<div class='ll-md-spec-row'><span class='k'>{k}</span>"
+        f"<span class='v'>{v}</span></div>"
+        for k, v in vehicle_specs
+    )
     st.markdown(
         "<div class='ll-md-specs'>"
-        + _spec_card("Pricing", "tag", pricing_specs)
-        + _spec_card("Terms", "percent", terms_specs)
-        + _spec_card("Vehicle & dealer", "info", vehicle_specs)
-        + options_card_html
-        + "</div>",
+        f"<section class='ll-md-spec-card'>"
+        f"<h4>{icon('info', 16, '#2E8BFF')} Vehicle & dealer</h4>"
+        f"{rows_html}"
+        f"</section>"
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -273,7 +251,7 @@ def show_detail(row: dict):
         if not name.strip() or not valid_email:
             st.error("Please enter your name and a valid email address.")
         else:
-            label = f"{title_for(row)} ({dt})"
+            label = f"{title_for(row)} ({featured})"
             payload = {
                 "listing_id": int(row["id"]), "listing_label": label,
                 "customer_name": name.strip(), "customer_email": email.strip(),

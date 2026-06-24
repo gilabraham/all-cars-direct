@@ -352,6 +352,36 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 }
 .ll-md-loc svg { flex: 0 0 auto; }
 
+/* Tabbed pricing card (Lease / Finance / Cash) inside the deal-details modal.
+   Mirrors the Coral-Springs PDP: rounded pill tabs on top, a single deal's
+   price + terms below. Streamlit's stock tab strip gets re-skinned. */
+[role="dialog"] [data-testid="stTabs"] [data-baseweb="tab-list"] {
+  gap: 8px; border-bottom: none; margin-top: 12px;
+}
+[role="dialog"] [data-testid="stTabs"] [data-baseweb="tab"] {
+  border: 1.5px solid var(--ll-border); border-radius: 999px;
+  padding: 8px 22px; background: #fff; height: auto;
+  font-size: 13px; font-weight: 700; color: #5a6577;
+}
+[role="dialog"] [data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {
+  background: #0E2A47; color: #fff; border-color: #0E2A47;
+}
+[role="dialog"] [data-testid="stTabs"] [data-baseweb="tab-highlight"],
+[role="dialog"] [data-testid="stTabs"] [data-baseweb="tab-border"] { display: none; }
+
+.ll-md-deal-card {
+  margin: 6px 0 4px; padding: 18px 20px;
+  background: linear-gradient(135deg, #f6faff 0%, #eef4ff 100%);
+  border: 1px solid #d8e6fb; border-radius: 14px;
+}
+.ll-md-deal-price { display: flex; align-items: baseline; gap: 8px; margin-bottom: 14px; }
+.ll-md-deal-amt {
+  font-size: 36px; font-weight: 800; color: var(--ll-ink);
+  letter-spacing: -1px; line-height: 1; font-feature-settings: 'tnum';
+}
+.ll-md-deal-unit { font-size: 14px; font-weight: 600; color: #6b7686; }
+.ll-md-deal-rows { border-top: 1px solid #d8e6fb; padding-top: 10px; }
+
 /* Spec grid: three grouped cards */
 .ll-md-specs {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
