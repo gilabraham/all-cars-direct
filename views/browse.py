@@ -34,6 +34,7 @@ _MULTI_FILTERS = (
     ("model", "flt_model_"),
     ("fuel", "flt_fuel_"),
     ("deal", "flt_deal_"),
+    ("condition", "flt_cond_"),
 )
 
 
@@ -97,7 +98,7 @@ def _clear_one(key: str):
 
 # Prefixes for the multi-value checkbox filters (each checkbox writes to
 # ``flt_<prefix>_<value>``).
-_FILTER_PREFIXES = ("flt_deal_", "flt_make_", "flt_model_",
+_FILTER_PREFIXES = ("flt_deal_", "flt_cond_", "flt_make_", "flt_model_",
                     "flt_body_", "flt_fuel_")
 
 
@@ -191,9 +192,16 @@ include_cash = st.session_state.get("flt_cash", True)
 only_featured = st.session_state.get("flt_feat", False)
 
 deal_types = [d for d in db.DEAL_TYPES if st.session_state.get(f"flt_deal_{d}")]
+sel_conditions = [c for c in db.CONDITIONS if st.session_state.get(f"flt_cond_{c}")]
 sel_makes = [m for m in makes if st.session_state.get(f"flt_make_{m}")]
 sel_body = [b for b in body_types if st.session_state.get(f"flt_body_{b}")]
 sel_fuel = [fu for fu in fuels if st.session_state.get(f"flt_fuel_{fu}")]
+
+# Condition counts — derived per render so empty values stay visible.
+cond_counts = {
+    c: int((df.get("condition") == c).sum()) if "condition" in df.columns else 0
+    for c in db.CONDITIONS
+}
 
 model_pool = df[df["make"].isin(sel_makes)] if sel_makes else df
 models = sorted(model_pool["model"].dropna().unique().tolist())
@@ -234,6 +242,8 @@ if deal_types:
     else:
         # Fallback for legacy rows without per-type columns.
         f = f[f["deal_type"].isin(deal_types)]
+if sel_conditions and "condition" in f.columns:
+    f = f[f["condition"].isin(sel_conditions)]
 if sel_makes:
     f = f[f["make"].isin(sel_makes)]
 if sel_models:
@@ -294,6 +304,7 @@ total = len(f)
 # to clear when the chip is dismissed).
 chips: list[tuple[str, str]] = []
 chips.extend((d, f"flt_deal_{d}") for d in deal_types)
+chips.extend((c, f"flt_cond_{c}") for c in sel_conditions)
 chips.extend((m, f"flt_make_{m}") for m in sel_makes)
 chips.extend((m, f"flt_model_{m}") for m in sel_models)
 chips.extend((b, f"flt_body_{b}") for b in sel_body)
@@ -370,6 +381,11 @@ with rail_col:
 
         with st.expander(_lbl("Deal type", len(deal_types)), expanded=bool(deal_types)):
             _check_list(db.DEAL_TYPES, deal_counts, "deal")
+
+        if any(cond_counts.values()):
+            with st.expander(_lbl("Condition", len(sel_conditions)),
+                             expanded=bool(sel_conditions)):
+                _check_list(db.CONDITIONS, cond_counts, "cond")
 
         if has_monthly:
             _price_active = (sel_monthly is not None and sel_monthly < m_max) or not include_cash

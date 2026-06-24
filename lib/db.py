@@ -49,6 +49,7 @@ EDITABLE_COLUMNS = [
     "photos_json",
     "location",
     "dealer_name",
+    "condition",
     "image_url",
     "description",
     "featured",
@@ -78,6 +79,7 @@ NUMERIC_COLUMNS = {
 }
 
 DEAL_TYPES = ["Lease", "Finance", "Cash"]
+CONDITIONS = ["New", "Pre-Owned"]
 BODY_TYPES = [
     "Sedan",
     "SUV",
@@ -183,6 +185,7 @@ _LISTINGS_ADDITIONS = [
     ("finance_apr", "REAL"),
     ("cash_price", "REAL"),
     ("photos_json", "TEXT"),     # JSON list of additional dealer photos
+    ("condition", "TEXT"),       # "New" or "Pre-Owned"
 ]
 # Columns added to `crawl_sources` via lightweight migrations on init.
 _SOURCES_ADDITIONS = [
@@ -220,6 +223,30 @@ def init_db() -> None:
         for col, decl in _SOURCES_ADDITIONS:
             if col not in src_cols:
                 conn.execute(f"ALTER TABLE crawl_sources ADD COLUMN {col} {decl}")
+        # Backfill ``condition`` for legacy crawled rows. Coral-Springs-style
+        # descriptions reliably start with "New " or "Used "; the crawl-source
+        # URL also tells us (``/inventory/used`` vs ``/inventory/new``). Only
+        # touches rows where ``condition`` is still NULL so manual edits stick.
+        conn.execute(
+            "UPDATE listings SET condition = 'Pre-Owned' "
+            "WHERE condition IS NULL AND ("
+            "  description LIKE 'Used %' OR description LIKE 'Pre-Owned%' OR "
+            "  crawl_source_id IN ("
+            "    SELECT id FROM crawl_sources "
+            "    WHERE LOWER(url) LIKE '%/used%' OR LOWER(url) LIKE '%/pre-owned%'"
+            "  )"
+            ")"
+        )
+        conn.execute(
+            "UPDATE listings SET condition = 'New' "
+            "WHERE condition IS NULL AND ("
+            "  description LIKE 'New %' OR "
+            "  crawl_source_id IN ("
+            "    SELECT id FROM crawl_sources "
+            "    WHERE LOWER(url) LIKE '%/new%'"
+            "  )"
+            ")"
+        )
 
 
 def count_listings() -> int:

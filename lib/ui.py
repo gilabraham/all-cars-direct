@@ -140,15 +140,16 @@ def card_html(row) -> str:
     img = image_src(row.get("make"), row.get("model"), row.get("year"), row.get("image_url"))
     title = title_for(row)
 
-    # When the user filters by 2+ deal types, show a pill for every matching
-    # deal type the listing offers — not just the featured one. Stays as a
-    # single pill when no filter is active or only one type is checked.
+    # Pill strategy:
+    #   - no filter        → show every deal type the listing actually offers
+    #   - one type filter  → that single pill (the featured one)
+    #   - multi-type filter → the matching subset
     user_deals = st.session_state.get("_card_user_deals", []) or []
-    if len(user_deals) >= 2:
-        pill_types = [d for d in DEAL_PRIORITY if d in available and d in user_deals]
-        if not pill_types:
-            pill_types = [featured]
+    if not user_deals:
+        pill_types = [d for d in DEAL_PRIORITY if d in available]
     else:
+        pill_types = [d for d in DEAL_PRIORITY if d in available and d in user_deals]
+    if not pill_types:
         pill_types = [featured]
     pills_html = "".join(
         f"<span class='ll-card-type "
@@ -157,7 +158,8 @@ def card_html(row) -> str:
         for d in pill_types
     )
 
-    sub_parts = [str(p) for p in (row.get("trim"), row.get("body_type"), row.get("fuel_type")) if p]
+    sub_parts = [str(p) for p in (row.get("condition"), row.get("trim"),
+                                   row.get("body_type"), row.get("fuel_type")) if p]
     subtitle = " · ".join(sub_parts)
 
     fav_html = (
@@ -217,13 +219,11 @@ def card_html(row) -> str:
             bits.append(f"{pct(disc)} off")
         secondary = " · ".join(bits)
 
-    # ---- "Also available" mini-row for the non-featured deal types.
-    # When the user has narrowed to specific deal types, only mention alts
-    # that match the filter — Cash pricing on a Lease-only filter is noise.
-    if len(user_deals) >= 2:
-        alts = [d for d in pill_types if d != featured]
-    else:
-        alts = [d for d in available if d != featured]
+    # ---- "Also available" mini-row for the non-featured deal types. Mirrors
+    # the pill set: shows every other deal when no filter is active, narrows
+    # to the user's selection when one is, and hides entirely on a single-
+    # type filter (the user already opted out of the alts).
+    alts = [d for d in pill_types if d != featured]
     alt_bits = []
     for d in alts:
         if d == "Lease" and not _isna(row.get("lease_monthly")):

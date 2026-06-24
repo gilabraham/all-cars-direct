@@ -244,6 +244,21 @@ def _vehicle_from_jsonld(node: dict, url: str) -> dict | None:
 
     detail_url = offers.get("url") if isinstance(offers, dict) else ""
 
+    # Condition derives from either the source URL (`/inventory/new` vs
+    # `/inventory/used`) or the description prefix ("New 2026 ...", "Used
+    # 2019 ...") — Coral-Springs-style dealer sites use both consistently.
+    condition = None
+    url_l = (url or "").lower()
+    if "/used" in url_l or "/pre-owned" in url_l or "/preowned" in url_l:
+        condition = "Pre-Owned"
+    elif "/new" in url_l:
+        condition = "New"
+    if not condition and desc_raw:
+        if re.match(r"\s*(used|pre[\s-]?owned)\b", desc_raw, re.IGNORECASE):
+            condition = "Pre-Owned"
+        elif re.match(r"\s*new\b", desc_raw, re.IGNORECASE):
+            condition = "New"
+
     return {
         "external_id": str(node.get("@id") or node.get("vehicleIdentificationNumber") or url),
         "make": str(brand).strip() if brand else "",
@@ -253,6 +268,7 @@ def _vehicle_from_jsonld(node: dict, url: str) -> dict | None:
         "body_type": str(body).strip() or None,
         "fuel_type": str(fuel).strip() or None,
         "deal_type": "Cash",
+        "condition": condition,
         "selling_price": _money(price),
         "msrp": _money(node.get("msrp") or node.get("listPrice")),
         "monthly_payment": monthly_payment,

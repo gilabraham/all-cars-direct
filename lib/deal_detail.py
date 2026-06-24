@@ -186,8 +186,9 @@ def show_detail(row: dict):
             f"{icon('star', 12, rating_color, fill=rating_color)} {rating_label}"
             + (f" · {score}/100" if score is not None else "") + "</span>"
         )
-        sub_bits = [str(x) for x in (row.get("trim"), row.get("body_type"),
-                    row.get("fuel_type"), row.get("exterior_color")) if x]
+        sub_bits = [str(x) for x in (row.get("condition"), row.get("trim"),
+                    row.get("body_type"), row.get("fuel_type"),
+                    row.get("exterior_color")) if x]
         subtitle = " · ".join(sub_bits)
 
         loc_bits = []
@@ -226,6 +227,7 @@ def show_detail(row: dict):
                 )
     with spec_col:
         vehicle_specs = [
+            ("Condition", _fmt_or_dash(row.get("condition"))),
             ("Body type", _fmt_or_dash(row.get("body_type"))),
             ("Fuel", _fmt_or_dash(row.get("fuel_type"))),
             ("Transmission", _fmt_or_dash(row.get("transmission"))),
