@@ -110,15 +110,19 @@ def crawl_source(source_id: int,
         )
         result.fetched_pages = pages
         result.listings = listings
-        # Admin-supplied location on the source acts as the canonical address
-        # for every listing it produces — dealer pages rarely expose useful
-        # per-listing locations, and admins typically know which physical lot
-        # a URL maps to. Falls back to whatever the parser found.
+        # Admin-supplied location + dealer name on the source act as the
+        # canonical values for every listing it produces — dealer pages rarely
+        # expose useful per-listing seller info, and admins typically know
+        # which physical lot a URL maps to. Falls back to whatever the parser
+        # found if these are left blank.
         source_location = (source.get("location") or "").strip()
+        source_dealer = (source.get("dealer_name") or "").strip()
         for row in listings:
             ext = str(row.pop("external_id", source["url"]))
             if source_location:
                 row["location"] = source_location
+            if source_dealer:
+                row["dealer_name"] = source_dealer
             outcome = db.upsert_crawled_listing(source_id, ext, row)
             if outcome == "inserted":
                 result.new_listings += 1

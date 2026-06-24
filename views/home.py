@@ -116,11 +116,18 @@ else:
 
 
 # ---------------------------------------------------------------- shop by make
-make_counts = (df["make"].dropna().value_counts().to_dict() if not df.empty else {})
+# Featured brands shown on the homepage tile row. Order in this tuple is the
+# fallback ordering used when two brands have the same listing count.
+FEATURED_MAKES = ("Honda", "Kia", "Nissan", "Buick", "GMC")
+
+raw_counts = (df["make"].dropna().value_counts().to_dict() if not df.empty else {})
+make_counts = {m: raw_counts.get(m, 0) for m in FEATURED_MAKES if raw_counts.get(m)}
 if make_counts:
     st.markdown("<h2 class='ll-home-h'>Shop by make</h2>", unsafe_allow_html=True)
-    # Show every brand we have stock for, ordered by count then name.
-    makes_sorted = sorted(make_counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    # Ordered by listing count desc, with FEATURED_MAKES order as the tiebreak.
+    order = {m: i for i, m in enumerate(FEATURED_MAKES)}
+    makes_sorted = sorted(make_counts.items(),
+                          key=lambda kv: (-kv[1], order.get(kv[0], 99)))
     tiles_html = "<div class='ll-tiles ll-tiles-make'>"
     for make_name, count in makes_sorted:
         logo = make_icon_html(make_name, size=56, align="center")

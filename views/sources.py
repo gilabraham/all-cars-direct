@@ -90,16 +90,24 @@ with st.form("add_source", clear_on_submit=True):
         name = st.text_input("Name *", placeholder="e.g. Boston Lexus inventory")
     with c2:
         url = st.text_input("URL *", placeholder="https://example.com/inventory")
-    c3, c4 = st.columns([2, 3])
+    c3, c4 = st.columns(2)
     with c3:
-        parser_kind = st.selectbox("Parser", db.CRAWLER_PARSER_KINDS, index=0)
-    with c4:
         location = st.text_input(
             "Location (optional)",
             placeholder="e.g. Coral Springs, FL",
             help="Shown on every product card for this source. Overrides any "
                  "address the crawler parses from the page.",
         )
+    with c4:
+        dealer_name = st.text_input(
+            "Dealer name (optional)",
+            placeholder="e.g. Coral Springs Auto Mall",
+            help="Shown on every product card. Overrides any seller name "
+                 "the crawler picks up from the page.",
+        )
+    c5, _ = st.columns([2, 3])
+    with c5:
+        parser_kind = st.selectbox("Parser", db.CRAWLER_PARSER_KINDS, index=0)
     config = st.text_area(
         "Config (optional JSON)",
         placeholder='{"title": "h1", "price": ".price", "image": "img.hero@src"}',
@@ -121,6 +129,7 @@ if add_clicked:
             "name": name.strip(), "url": url.strip(),
             "parser_kind": parser_kind, "config": config.strip() or None,
             "location": location.strip() or None,
+            "dealer_name": dealer_name.strip() or None,
             "enabled": 1,
         })
         st.success(f"Added source: {name.strip()}")
@@ -159,6 +168,8 @@ for _, r in sdf.iterrows():
             meta_bits = [f"[{r['url']}]({r['url']})", f"`{r['parser_kind']}`"]
             if r.get("location"):
                 meta_bits.append(f":material/location_on: {r['location']}")
+            if r.get("dealer_name"):
+                meta_bits.append(f":material/storefront: {r['dealer_name']}")
             st.caption(" · ".join(meta_bits))
             if r.get("last_status"):
                 color = "#16a34a" if str(r["last_status"]).startswith("OK") else "#dc2626"
@@ -178,25 +189,35 @@ for _, r in sdf.iterrows():
         with h3:
             b1, b2, b3 = st.columns(3)
             with b1:
-                with st.popover(":material/edit_location:", use_container_width=True,
-                                help="Edit location for this source"):
+                with st.popover(":material/edit:", use_container_width=True,
+                                help="Edit location + dealer name for this source"):
                     new_loc = st.text_input(
                         "Location", value=r.get("location") or "",
                         key=f"src_loc_{sid}",
                         placeholder="e.g. Coral Springs, FL",
                     )
-                    apply_loc = st.button("Save", key=f"src_loc_save_{sid}",
-                                          type="primary", width="stretch")
-                    if apply_loc:
-                        db.update_crawl_source(sid, {"location": new_loc.strip() or None})
-                        # Backfill existing crawled listings for this source so
-                        # the new location shows up on the storefront immediately.
+                    new_dealer = st.text_input(
+                        "Dealer name", value=r.get("dealer_name") or "",
+                        key=f"src_dealer_{sid}",
+                        placeholder="e.g. Coral Springs Auto Mall",
+                    )
+                    apply_meta = st.button("Save", key=f"src_meta_save_{sid}",
+                                           type="primary", width="stretch")
+                    if apply_meta:
+                        loc_v = new_loc.strip() or None
+                        dealer_v = new_dealer.strip() or None
+                        db.update_crawl_source(sid, {
+                            "location": loc_v, "dealer_name": dealer_v,
+                        })
+                        # Backfill existing crawled listings so the new values
+                        # appear on the storefront immediately.
                         with db.get_conn() as conn:
                             conn.execute(
-                                "UPDATE listings SET location = ? WHERE crawl_source_id = ?",
-                                (new_loc.strip() or None, sid),
+                                "UPDATE listings SET location = ?, dealer_name = ? "
+                                "WHERE crawl_source_id = ?",
+                                (loc_v, dealer_v, sid),
                             )
-                        st.success("Location updated and applied to existing listings.")
+                        st.success("Saved and applied to existing listings.")
                         st.rerun()
             with b2:
                 if st.button("Sync", key=f"src_sync_{sid}",

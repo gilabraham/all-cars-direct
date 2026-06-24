@@ -150,6 +150,7 @@ _LISTINGS_ADDITIONS = [
 # Columns added to `crawl_sources` via lightweight migrations on init.
 _SOURCES_ADDITIONS = [
     ("location", "TEXT"),
+    ("dealer_name", "TEXT"),
 ]
 CRAWLER_PARSER_KINDS = ["generic", "json_ld", "selectors"]
 
@@ -349,11 +350,13 @@ def count_inquiries(status: str | None = None) -> int:
 
 # --------------------------------------------------------- crawl sources / runs
 def insert_crawl_source(record: dict) -> int:
-    cols = ["name", "url", "parser_kind", "config", "enabled", "location", "created_at"]
+    cols = ["name", "url", "parser_kind", "config", "enabled",
+            "location", "dealer_name", "created_at"]
     rec = dict(record)
     rec.setdefault("parser_kind", "generic")
     rec.setdefault("config", None)
     rec.setdefault("location", None)
+    rec.setdefault("dealer_name", None)
     rec["enabled"] = int(rec.get("enabled", 1))
     rec["created_at"] = _now()
     placeholders = ", ".join("?" for _ in cols)
@@ -377,7 +380,7 @@ def get_crawl_source(source_id: int) -> dict | None:
 
 def update_crawl_source(source_id: int, fields: dict) -> None:
     allowed = {"name", "url", "parser_kind", "config", "enabled",
-               "location", "last_run_at", "last_status"}
+               "location", "dealer_name", "last_run_at", "last_status"}
     sets = {k: (int(v) if k == "enabled" else v) for k, v in fields.items() if k in allowed}
     if not sets:
         return
