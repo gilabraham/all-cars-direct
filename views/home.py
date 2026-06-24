@@ -121,6 +121,33 @@ else:
     st.info("No deals yet. The crawler will populate them once a source is added.")
 
 
+# ---------------------------------------------------------------- sign & drive
+# Premium upsell band — sits between Top Deals and Shop by Make so visitors
+# have already seen real inventory before the "we'll deliver it" pitch.
+st.markdown(
+    f"""
+    <section class='ll-snd-band'>
+      <div class='ll-snd-copy'>
+        <div class='ll-snd-eyebrow'>{icon('star', 12, '#7aa9ff', fill='#7aa9ff')} Premium service</div>
+        <h2>Sign and Drive — never visit a dealership</h2>
+        <p>Remote document signing, all financing paperwork handled, white-glove
+           delivery straight to your driveway. Available on most in-network vehicles.</p>
+        <div class='ll-snd-feats'>
+          <span class='ll-snd-feat'>{icon('check-circle', 14, '#7aa9ff')} Remote signing</span>
+          <span class='ll-snd-feat'>{icon('file-text', 14, '#7aa9ff')} Paperwork handled</span>
+          <span class='ll-snd-feat'>{icon('key', 14, '#7aa9ff')} Delivered to your driveway</span>
+        </div>
+      </div>
+      <a class='ll-snd-cta'
+         href='mailto:info@allcarsdirectllc.com?subject=Sign%20and%20Drive%20Inquiry'>
+        Request Sign and Drive {icon('arrow-right', 16, '#ffffff')}
+      </a>
+    </section>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 # ---------------------------------------------------------------- shop by make
 # Featured brands shown on the homepage tile row. Order in this tuple is the
 # fallback ordering used when two brands have the same listing count.

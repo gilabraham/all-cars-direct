@@ -1030,6 +1030,62 @@ footer {visibility:hidden;}
 .ll-tile-lab { font-size: 15px; font-weight: 650; color: var(--ll-ink); }
 .ll-tile-ct  { font-size: 12px; color: #6b7686; margin-top: 2px; }
 
+/* Sign-and-Drive premium-upsell band — homepage, between Top Deals and
+   Shop by Make. Dark navy gradient pulls the eye after the inventory grid
+   without competing with the lighter sections around it. */
+.ll-snd-band {
+  position: relative; overflow: hidden;
+  margin: 40px 0 28px; padding: 36px 40px;
+  background:
+    radial-gradient(60% 100% at 90% 10%, rgba(46,139,255,0.22) 0%, transparent 60%),
+    linear-gradient(135deg, #0E2A47 0%, #112949 100%);
+  border-radius: 20px; color: #fff;
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: center; gap: 32px;
+  box-shadow: 0 20px 60px -30px rgba(14, 42, 71, 0.50);
+}
+.ll-snd-band::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.ll-snd-band > * { position: relative; }
+.ll-snd-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 750; letter-spacing: 0.6px;
+  text-transform: uppercase; color: #7aa9ff;
+  margin-bottom: 14px;
+}
+.ll-snd-band h2 {
+  margin: 0 0 12px; font-size: 28px; font-weight: 820;
+  letter-spacing: -0.6px; line-height: 1.15; color: #fff;
+}
+.ll-snd-band p {
+  margin: 0; font-size: 15px; line-height: 1.55;
+  color: #cdd6e4; max-width: 580px;
+}
+.ll-snd-feats {
+  display: flex; flex-wrap: wrap; gap: 20px 24px;
+  margin: 18px 0 0; font-size: 13px; color: #b3c0d4; font-weight: 600;
+}
+.ll-snd-feat { display: inline-flex; align-items: center; gap: 6px; }
+.ll-snd-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 24px; border-radius: 999px;
+  background: #2E8BFF; color: #fff !important; text-decoration: none;
+  font-weight: 700; font-size: 14px; white-space: nowrap;
+  box-shadow: 0 8px 24px -8px rgba(46, 139, 255, 0.65);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.ll-snd-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px -8px rgba(46, 139, 255, 0.75);
+}
+@media (max-width: 720px) {
+  .ll-snd-band { grid-template-columns: 1fr; padding: 28px 24px; }
+  .ll-snd-band h2 { font-size: 22px; }
+}
+
 /* "How it works" panel — same dark gradient + dotted texture treatment as
    the home hero, with glass-card steps on top. */
 .ll-hiw-panel {
