@@ -417,12 +417,20 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   gap: 8px; border-bottom: none; padding: 6px;
   background: #f1f4f9; border-radius: 14px;
   display: inline-flex; width: auto;
+  /* On narrow viewports the three tabs (each carrying its headline price)
+     overflow the modal. Cap at modal width and let the strip scroll
+     horizontally instead of clipping off the rightmost tab. */
+  max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+[role="dialog"] [data-testid="stTabs"] [data-baseweb="tab-list"]::-webkit-scrollbar {
+  display: none;
 }
 [role="dialog"] [data-testid="stTabs"] [data-baseweb="tab"] {
   border: none; border-radius: 10px;
   padding: 9px 18px; background: transparent; height: auto;
   font-size: 13px; font-weight: 700; color: #5a6577;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.2px; white-space: nowrap;
   transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 [role="dialog"] [data-testid="stTabs"] [data-baseweb="tab"]:hover {
@@ -513,6 +521,17 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   .ll-md-vd-grid { grid-template-columns: 1fr; column-gap: 0; }
   .ll-md-vd-item:nth-last-child(-n + 2) { border-bottom: 1px dashed #eef2f7; }
   .ll-md-vd-item:last-child { border-bottom: none; }
+  /* Tighter pricing tabs on phones — three "Lease · $727/mo"-style labels
+     overflow the modal at full desktop padding. Shrink + still scroll. */
+  [role="dialog"] [data-testid="stTabs"] [data-baseweb="tab-list"] {
+    padding: 4px;
+  }
+  [role="dialog"] [data-testid="stTabs"] [data-baseweb="tab"] {
+    padding: 7px 12px; font-size: 12px;
+  }
+  /* Larger deal-card amount feels cramped at full size on a phone. */
+  .ll-md-deal-card { padding: 18px 18px; }
+  .ll-md-deal-amt { font-size: 34px; letter-spacing: -1px; }
 }
 .ll-md-spec-card h4 {
   display: flex; align-items: center; gap: 8px;
