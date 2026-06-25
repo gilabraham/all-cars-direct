@@ -359,17 +359,8 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   width: 100%; height: 100%; object-fit: cover; display: block;
 }
 
-/* Full-width header — title left, chips right, sub + location below */
-.ll-md-header { margin: 0 0 18px; }
-.ll-md-header-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 14px; flex-wrap: wrap; margin: 0 0 8px;
-}
-.ll-md-header-row .ll-md-title { margin: 0; }
-.ll-md-header-row .ll-md-chips { margin: 0; flex-shrink: 0; }
-
-/* Chips row */
-.ll-md-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+/* Chips row above the title in the right info column. */
+.ll-md-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
 .ll-md-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 5px 12px; border-radius: 999px;
@@ -381,11 +372,11 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 
 /* Title + subtitle */
 .ll-md-title {
-  margin: 0 0 6px; font-size: 28px; font-weight: 820;
-  color: var(--ll-ink); letter-spacing: -0.6px; line-height: 1.1;
+  margin: 0 0 4px; font-size: 26px; font-weight: 820;
+  color: var(--ll-ink); letter-spacing: -0.5px; line-height: 1.1;
 }
 .ll-md-sub {
-  margin: 0 0 14px; color: #6b7686; font-size: 14px; line-height: 1.45;
+  margin: 0 0 10px; color: #6b7686; font-size: 14px; line-height: 1.45;
 }
 
 /* Big price block */
@@ -411,6 +402,7 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 .ll-md-loc {
   display: flex; align-items: center; gap: 6px;
   font-size: 13.5px; color: #6b7686;
+  margin: 0 0 6px;
 }
 .ll-md-loc svg { flex: 0 0 auto; }
 
@@ -477,12 +469,10 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
   background: #fff; border: 1px solid var(--ll-border); border-radius: 12px;
   padding: 14px 16px;
 }
-/* Vehicle & dealer — horizontal strip across the full modal width. Each
-   spec stacks label-on-top, value-below in an auto-fit grid that re-wraps
-   on narrow viewports. Same shadow/border as the deal card so the bottom
-   of the modal reads as a continuation of the pricing panel. */
+/* Vehicle & dealer — clean 2-column spec list, dashed dividers between
+   rows so it reads like a proper spec sheet (label left, value right). */
 .ll-md-vd-strip {
-  margin: 20px 0 8px; padding: 18px 22px;
+  margin: 22px 0 8px; padding: 20px 24px;
   background: #ffffff;
   border: 1px solid #e4ebf3; border-radius: 14px;
   box-shadow: 0 1px 2px rgba(14, 42, 71, 0.04),
@@ -490,25 +480,39 @@ section[data-testid="stSidebar"] [data-testid="stTextInput"] input {
 }
 .ll-md-vd-strip h4 {
   display: flex; align-items: center; gap: 8px;
-  margin: 0 0 14px; padding-bottom: 10px;
+  margin: 0 0 8px; padding-bottom: 12px;
   border-bottom: 1px solid #eef2f7;
   font-size: 12px; font-weight: 750; color: var(--ll-ink);
   text-transform: uppercase; letter-spacing: 0.4px;
 }
 .ll-md-vd-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 14px 20px;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 36px;
 }
-.ll-md-vd-item { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ll-md-vd-item {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 16px; padding: 10px 0; min-width: 0;
+  border-bottom: 1px dashed #eef2f7;
+}
+/* Last item in each column has no underline. The grid lays out items in
+   row-major order, so the last two visual items are the final children. */
+.ll-md-vd-item:nth-last-child(-n + 2) { border-bottom: none; }
 .ll-md-vd-item .k {
-  font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px;
-  text-transform: uppercase; color: #6b7686;
+  font-size: 13.5px; color: #6b7686; font-weight: 500;
+  flex-shrink: 0;
 }
 .ll-md-vd-item .v {
   font-size: 14px; font-weight: 700; color: var(--ll-ink);
   font-feature-settings: 'tnum';
+  text-align: right;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0;
+}
+@media (max-width: 720px) {
+  .ll-md-vd-grid { grid-template-columns: 1fr; column-gap: 0; }
+  .ll-md-vd-item:nth-last-child(-n + 2) { border-bottom: 1px dashed #eef2f7; }
+  .ll-md-vd-item:last-child { border-bottom: none; }
 }
 .ll-md-spec-card h4 {
   display: flex; align-items: center; gap: 8px;

@@ -264,9 +264,9 @@ def show_detail(row: dict):
     dt_color = deal_type_color(featured)
     pref_order = st.session_state.get("_card_deal_pref", DEAL_PRIORITY)
 
-    # ---- Header (full width above the hero) — chips floated right of the
-    # title, subtitle + location underneath. Spreads horizontally instead of
-    # being crammed into the narrow right column above the image.
+    # ---- Hero row: image left, all info right (header + pricing tabs stack
+    # together so the right column reads as one cohesive panel rather than
+    # a chunk of empty space).
     chips = (
         f"<span class='ll-md-chip' style='background:{dt_color}1f;color:{dt_color};"
         f"border-color:{dt_color}40;'>{featured}</span>"
@@ -284,27 +284,13 @@ def show_detail(row: dict):
         f"<div class='ll-md-loc'>{icon('map-pin', 14, '#6b7686')} "
         f"{' · '.join(loc_bits)}</div>" if loc_bits else ""
     )
-    st.markdown(
-        f"<div class='ll-md-header'>"
-        f"  <div class='ll-md-header-row'>"
-        f"    <h2 class='ll-md-title'>{title_for(row)}</h2>"
-        f"    <div class='ll-md-chips'>{chips}</div>"
-        f"  </div>"
-        + (f"  <p class='ll-md-sub'>{subtitle}</p>" if subtitle else "")
-        + loc_html
-        + f"</div>",
-        unsafe_allow_html=True,
-    )
 
-    # ---- Image gallery (left) | pricing tabs (right).
-    img_col, deal_col = st.columns([5, 7], gap="medium")
+    img_col, info_col = st.columns([5, 7], gap="medium")
     with img_col:
         img_url = image_src(
             row.get("make"), row.get("model"),
             row.get("year"), row.get("image_url"),
         )
-        # Build the photo list (hero first, then any unique extras from the
-        # headless ``photos_json``). Headless crawl banks up to 12 per VIN.
         photos: list[str] = [img_url]
         photos_raw = row.get("photos_json")
         if photos_raw:
@@ -319,7 +305,14 @@ def show_detail(row: dict):
     tab_order = [featured] + [d for d in pref_order
                               if d in available and d != featured]
     tab_labels = [f"{d}  ·  {_tab_headline(d, row)}" for d in tab_order]
-    with deal_col:
+    with info_col:
+        st.markdown(
+            f"<div class='ll-md-chips'>{chips}</div>"
+            f"<h2 class='ll-md-title'>{title_for(row)}</h2>"
+            + (f"<p class='ll-md-sub'>{subtitle}</p>" if subtitle else "")
+            + loc_html,
+            unsafe_allow_html=True,
+        )
         tabs = st.tabs(tab_labels)
         for tab, deal in zip(tabs, tab_order):
             with tab:
@@ -328,19 +321,20 @@ def show_detail(row: dict):
                     unsafe_allow_html=True,
                 )
 
-    # ---- Vehicle & dealer — full-width horizontal strip. Auto-fit grid wraps
-    # to multiple rows on narrower viewports.
+    # ---- Vehicle & dealer — clean 2-column spec list, dashed dividers
+    # between rows so values can left-align to the right edge and labels
+    # to the left. Reads like a real spec sheet, not a packed strip.
     vehicle_specs = [
         ("Condition", _fmt_or_dash(row.get("condition"))),
-        ("Body type", _fmt_or_dash(row.get("body_type"))),
-        ("Fuel", _fmt_or_dash(row.get("fuel_type"))),
         ("Transmission", _fmt_or_dash(row.get("transmission"))),
+        ("Body type", _fmt_or_dash(row.get("body_type"))),
         ("Exterior", _fmt_or_dash(row.get("exterior_color"))),
+        ("Fuel", _fmt_or_dash(row.get("fuel_type"))),
         ("Interior", _fmt_or_dash(row.get("interior_color"))),
         ("Location", _fmt_or_dash(row.get("location"))),
         ("Dealer", _fmt_or_dash(row.get("dealer_name"))),
     ]
-    grid_html = "".join(
+    items_html = "".join(
         f"<div class='ll-md-vd-item'>"
         f"<span class='k'>{k}</span><span class='v'>{v}</span>"
         f"</div>"
@@ -349,7 +343,7 @@ def show_detail(row: dict):
     st.markdown(
         f"<section class='ll-md-vd-strip'>"
         f"<h4>{icon('info', 16, '#2E8BFF')} Vehicle & dealer</h4>"
-        f"<div class='ll-md-vd-grid'>{grid_html}</div>"
+        f"<div class='ll-md-vd-grid'>{items_html}</div>"
         f"</section>",
         unsafe_allow_html=True,
     )
