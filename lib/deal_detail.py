@@ -152,6 +152,43 @@ _GALLERY_NOISE_RE = re.compile(
 )
 
 
+# Tab labels like "Lease  ·  $471/mo" overflow the modal on phones.
+# Streamlit's st.tabs API only accepts plain strings, so CSS can't selectively
+# hide the price portion. This shim runs inside a components.html iframe and
+# reaches into the parent document to rewrite tab text to just "Lease" /
+# "Finance" / "Cash" when the viewport is narrow, restoring the full label
+# when wide. Re-runs on resize.
+_TAB_MOBILE_SHIM_JS = """
+<script>
+(function () {
+  const doc = window.parent && window.parent.document;
+  if (!doc) return;
+  const apply = () => {
+    const mobile = window.parent.matchMedia('(max-width: 720px)').matches;
+    const tabs = doc.querySelectorAll(
+      '[role="dialog"] [data-testid="stTabs"] [data-baseweb="tab"]'
+    );
+    tabs.forEach((btn) => {
+      btn.querySelectorAll('p, div, span').forEach((el) => {
+        const txt = (el.textContent || '').trim();
+        if (!txt) return;
+        // Match "Word(s)  ·  $..." — the format we render server-side.
+        const m = txt.match(/^([A-Za-z][A-Za-z ]*?)\\s+·\\s+\\$/);
+        if (!m && !el.dataset.acdFull) return;
+        if (!el.dataset.acdFull) el.dataset.acdFull = txt;
+        const short = (m ? m[1] : el.dataset.acdFull.split(/\\s+·\\s+/)[0]).trim();
+        const next = mobile ? short : el.dataset.acdFull;
+        if (el.textContent !== next) el.textContent = next;
+      });
+    });
+  };
+  [60, 200, 600].forEach((d) => setTimeout(apply, d));
+  window.addEventListener('resize', apply);
+})();
+</script>
+"""
+
+
 def _useful_description(row: dict) -> str:
     """Return the listing description only if it looks like real prose. The
     headless crawler synthesizes a "New 2025 GMC Sierra 1500 Pro - cash 623.03
@@ -320,6 +357,9 @@ def show_detail(row: dict):
                     f"<div class='ll-md-deal-card'>{_pricing_block_html(deal, row)}</div>",
                     unsafe_allow_html=True,
                 )
+        # Rewrite tab labels to just "Lease" / "Finance" / "Cash" on phones
+        # so the segmented strip fits without horizontal scroll.
+        components.html(_TAB_MOBILE_SHIM_JS, height=0)
 
     # ---- Vehicle & dealer — clean 2-column spec list, dashed dividers
     # between rows so values can left-align to the right edge and labels
