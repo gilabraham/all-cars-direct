@@ -264,8 +264,40 @@ def show_detail(row: dict):
     dt_color = deal_type_color(featured)
     pref_order = st.session_state.get("_card_deal_pref", DEAL_PRIORITY)
 
-    # ---- Hero: image on the left, headline + chips on the right.
-    img_col, info_col = st.columns([5, 7], gap="medium")
+    # ---- Header (full width above the hero) — chips floated right of the
+    # title, subtitle + location underneath. Spreads horizontally instead of
+    # being crammed into the narrow right column above the image.
+    chips = (
+        f"<span class='ll-md-chip' style='background:{dt_color}1f;color:{dt_color};"
+        f"border-color:{dt_color}40;'>{featured}</span>"
+        f"<span class='ll-md-chip' style='background:{rating_color}1f;color:{rating_color};"
+        f"border-color:{rating_color}40;'>"
+        f"{icon('star', 12, rating_color, fill=rating_color)} {rating_label}"
+        + (f" · {score}/100" if score is not None else "") + "</span>"
+    )
+    sub_bits = [str(x) for x in (row.get("condition"), row.get("trim"),
+                row.get("body_type"), row.get("fuel_type"),
+                row.get("exterior_color")) if x]
+    subtitle = " · ".join(sub_bits)
+    loc_bits = [b for b in (row.get("dealer_name"), row.get("location")) if b]
+    loc_html = (
+        f"<div class='ll-md-loc'>{icon('map-pin', 14, '#6b7686')} "
+        f"{' · '.join(loc_bits)}</div>" if loc_bits else ""
+    )
+    st.markdown(
+        f"<div class='ll-md-header'>"
+        f"  <div class='ll-md-header-row'>"
+        f"    <h2 class='ll-md-title'>{title_for(row)}</h2>"
+        f"    <div class='ll-md-chips'>{chips}</div>"
+        f"  </div>"
+        + (f"  <p class='ll-md-sub'>{subtitle}</p>" if subtitle else "")
+        + loc_html
+        + f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    # ---- Image gallery (left) | pricing tabs (right).
+    img_col, deal_col = st.columns([5, 7], gap="medium")
     with img_col:
         img_url = image_src(
             row.get("make"), row.get("model"),
@@ -284,46 +316,9 @@ def show_detail(row: dict):
                 pass
         _render_gallery(photos, title_for(row))
 
-    with info_col:
-        chips = (
-            f"<span class='ll-md-chip' style='background:{dt_color}1f;color:{dt_color};"
-            f"border-color:{dt_color}40;'>{featured}</span>"
-            f"<span class='ll-md-chip' style='background:{rating_color}1f;color:{rating_color};"
-            f"border-color:{rating_color}40;'>"
-            f"{icon('star', 12, rating_color, fill=rating_color)} {rating_label}"
-            + (f" · {score}/100" if score is not None else "") + "</span>"
-        )
-        sub_bits = [str(x) for x in (row.get("condition"), row.get("trim"),
-                    row.get("body_type"), row.get("fuel_type"),
-                    row.get("exterior_color")) if x]
-        subtitle = " · ".join(sub_bits)
-
-        loc_bits = []
-        if row.get("dealer_name"):
-            loc_bits.append(row["dealer_name"])
-        if row.get("location"):
-            loc_bits.append(row["location"])
-        loc_html = (
-            f"<div class='ll-md-loc'>{icon('map-pin', 14, '#6b7686')} "
-            f"{' · '.join(loc_bits)}</div>" if loc_bits else ""
-        )
-
-        st.markdown(
-            f"<div class='ll-md-chips'>{chips}</div>"
-            f"<h2 class='ll-md-title'>{title_for(row)}</h2>"
-            + (f"<p class='ll-md-sub'>{subtitle}</p>" if subtitle else "")
-            + loc_html,
-            unsafe_allow_html=True,
-        )
-
-    # ---- Pricing tabs (left) sit next to Vehicle & dealer (right) on desktop,
-    # mirroring a typical dealer PDP — price/options on the left, specs on the
-    # right. Streamlit stacks columns under ~640px so the modal still works
-    # on mobile.
     tab_order = [featured] + [d for d in pref_order
                               if d in available and d != featured]
     tab_labels = [f"{d}  ·  {_tab_headline(d, row)}" for d in tab_order]
-    deal_col, spec_col = st.columns([7, 5], gap="medium")
     with deal_col:
         tabs = st.tabs(tab_labels)
         for tab, deal in zip(tabs, tab_order):
@@ -332,29 +327,32 @@ def show_detail(row: dict):
                     f"<div class='ll-md-deal-card'>{_pricing_block_html(deal, row)}</div>",
                     unsafe_allow_html=True,
                 )
-    with spec_col:
-        vehicle_specs = [
-            ("Condition", _fmt_or_dash(row.get("condition"))),
-            ("Body type", _fmt_or_dash(row.get("body_type"))),
-            ("Fuel", _fmt_or_dash(row.get("fuel_type"))),
-            ("Transmission", _fmt_or_dash(row.get("transmission"))),
-            ("Exterior", _fmt_or_dash(row.get("exterior_color"))),
-            ("Interior", _fmt_or_dash(row.get("interior_color"))),
-            ("Location", _fmt_or_dash(row.get("location"))),
-            ("Dealer", _fmt_or_dash(row.get("dealer_name"))),
-        ]
-        rows_html = "".join(
-            f"<div class='ll-md-spec-row'><span class='k'>{k}</span>"
-            f"<span class='v'>{v}</span></div>"
-            for k, v in vehicle_specs
-        )
-        st.markdown(
-            f"<section class='ll-md-spec-card ll-md-spec-card--tall'>"
-            f"<h4>{icon('info', 16, '#2E8BFF')} Vehicle & dealer</h4>"
-            f"{rows_html}"
-            f"</section>",
-            unsafe_allow_html=True,
-        )
+
+    # ---- Vehicle & dealer — full-width horizontal strip. Auto-fit grid wraps
+    # to multiple rows on narrower viewports.
+    vehicle_specs = [
+        ("Condition", _fmt_or_dash(row.get("condition"))),
+        ("Body type", _fmt_or_dash(row.get("body_type"))),
+        ("Fuel", _fmt_or_dash(row.get("fuel_type"))),
+        ("Transmission", _fmt_or_dash(row.get("transmission"))),
+        ("Exterior", _fmt_or_dash(row.get("exterior_color"))),
+        ("Interior", _fmt_or_dash(row.get("interior_color"))),
+        ("Location", _fmt_or_dash(row.get("location"))),
+        ("Dealer", _fmt_or_dash(row.get("dealer_name"))),
+    ]
+    grid_html = "".join(
+        f"<div class='ll-md-vd-item'>"
+        f"<span class='k'>{k}</span><span class='v'>{v}</span>"
+        f"</div>"
+        for k, v in vehicle_specs
+    )
+    st.markdown(
+        f"<section class='ll-md-vd-strip'>"
+        f"<h4>{icon('info', 16, '#2E8BFF')} Vehicle & dealer</h4>"
+        f"<div class='ll-md-vd-grid'>{grid_html}</div>"
+        f"</section>",
+        unsafe_allow_html=True,
+    )
 
     desc = _useful_description(row)
     if desc:
