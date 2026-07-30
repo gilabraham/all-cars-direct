@@ -1,6 +1,8 @@
 """Formatting helpers and HTML card rendering for the browse view."""
 from __future__ import annotations
 
+import html as _html
+import json
 import math
 
 import pandas as pd
@@ -8,9 +10,77 @@ import streamlit as st
 
 from . import scoring
 from .icons import icon
-from .images import image_src
+from .images import car_photo_url, image_src, placeholder_svg
 
 DEAL_PRIORITY = ("Lease", "Finance", "Cash")
+
+
+_IMG_FALLBACK_JS = """
+<script>
+(function () {
+  const doc = window.parent && window.parent.document;
+  if (!doc) return;
+  const wire = (img) => {
+    if (img.dataset.acdFbWired) return;
+    img.dataset.acdFbWired = '1';
+    let chain;
+    try { chain = JSON.parse(img.dataset.fb || '[]'); }
+    catch (e) { return; }
+    let i = 0;
+    img.addEventListener('error', () => {
+      if (i < chain.length) img.src = chain[i++];
+    });
+  };
+  const sweep = () => {
+    doc.querySelectorAll('.ll-card-media img[data-fb]').forEach(wire);
+  };
+  sweep();
+  new MutationObserver(sweep).observe(doc.body, { childList: true, subtree: true });
+})();
+</script>
+"""
+
+
+def install_image_fallback_shim() -> None:
+    """Emit the fallback-onerror JS shim once per page render. Call from
+    any view that renders ``card_html`` — safe to call multiple times, but
+    once is enough since the shim wires new images via MutationObserver."""
+    import streamlit.components.v1 as _components
+    _components.html(_IMG_FALLBACK_JS, height=0)
+
+
+def image_fallback_urls(row) -> list[str]:
+    """Ordered list of candidate image URLs to try if the primary
+    ``image_url`` errors client-side (dealer CDN 404s are common — ~18%
+    of headless-crawled URLs go dead as inventory churns). Consumed by
+    the small JS shim ``_IMG_FALLBACK_JS`` on the browse/home pages."""
+    primary = row.get("image_url") or ""
+    chain: list[str] = []
+
+    def _push(u: str) -> None:
+        if u and u not in chain and u != primary:
+            chain.append(u)
+
+    photos_raw = row.get("photos_json")
+    if photos_raw:
+        try:
+            for p in json.loads(photos_raw):
+                if isinstance(p, str):
+                    _push(p)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    make = (row.get("make") or "").strip()
+    model = (row.get("model") or "").strip()
+    if make and model:
+        _push(car_photo_url(make, model, row.get("year")))
+
+    # Final catch-all — a data: URL that CAN'T fail to load.
+    import base64
+    svg = placeholder_svg(make, model, row.get("year"))
+    _push("data:image/svg+xml;base64,"
+          + base64.b64encode(svg.encode("utf-8")).decode("ascii"))
+    return chain
 
 
 def featured_deal_for(row) -> str:
@@ -139,6 +209,9 @@ def card_html(row) -> str:
     )
     img = image_src(row.get("make"), row.get("model"), row.get("year"), row.get("image_url"))
     title = title_for(row)
+    # Encoded fallback chain — the img-fallback JS reads this attr and walks
+    # the URLs on <img> error events until one loads successfully.
+    fb_attr = _html.escape(json.dumps(image_fallback_urls(row)), quote=True)
 
     # Pill strategy:
     #   - no filter        → show every deal type the listing actually offers
@@ -244,7 +317,7 @@ def card_html(row) -> str:
     html = f"""
     <div class='ll-card'>
       <div class='ll-card-media'>
-        <img src='{img}' alt='{title}'/>
+        <img src='{img}' alt='{title}' data-fb='{fb_attr}'/>
         <div class='ll-card-types'>{pills_html}</div>
         {fav_html}
       </div>

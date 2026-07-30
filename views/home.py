@@ -8,7 +8,7 @@ import streamlit as st
 from lib import db, scoring
 from lib.deal_detail import show_detail
 from lib.icons import body_icon_html, icon, make_icon_html
-from lib.ui import card_html
+from lib.ui import card_html, install_image_fallback_shim
 
 
 # Toast confirming a just-submitted deal request (set inside the detail dialog).
@@ -24,6 +24,9 @@ st.session_state.pop("_card_deal_pref", None)
 # ---------------------------------------------------------------- data
 df = scoring.enrich(db.fetch_df(active_only=True))
 active_deals = len(df)
+
+# Wire up client-side fallback so dealer-CDN 404s swap to the next photo.
+install_image_fallback_shim()
 
 
 # ---------------------------------------------------------------- hero

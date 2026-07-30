@@ -10,7 +10,15 @@ from lib.icons import icon
 adf = scoring.enrich(db.fetch_df(active_only=True))
 live_deals = len(adf)
 brand_count = adf["make"].nunique() if not adf.empty else 0
-lease_count = int((adf["deal_type"] == "Lease").sum()) if not adf.empty else 0
+# Count listings that actually offer a lease — the headless crawler stores
+# per-deal-type pricing in ``lease_monthly`` (the nominal ``deal_type`` column
+# is always "Cash" for crawled rows, so filtering on it always returned 0).
+if adf.empty:
+    lease_count = 0
+elif "lease_monthly" in adf.columns and adf["lease_monthly"].notna().any():
+    lease_count = int(adf["lease_monthly"].notna().sum())
+else:
+    lease_count = int((adf["deal_type"] == "Lease").sum())
 disc = adf["discount_percent"].dropna() if "discount_percent" in adf.columns else None
 avg_disc = (f"{disc.mean():.1f}%" if disc is not None and not disc.empty else "—")
 

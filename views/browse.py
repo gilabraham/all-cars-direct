@@ -7,7 +7,7 @@ import streamlit as st
 from lib import db, scoring, styles
 from lib.deal_detail import show_detail
 from lib.icons import body_icon_html, icon, make_icon_html
-from lib.ui import card_html
+from lib.ui import card_html, install_image_fallback_shim
 
 # Toast confirming a just-submitted deal request (set inside the detail dialog).
 if "req_toast" in st.session_state:
@@ -18,6 +18,9 @@ df = scoring.enrich(db.fetch_df(active_only=True))
 if df.empty:
     st.warning("No active listings yet. Add inventory from the **Admin → Manage Listings** page.")
     st.stop()
+
+# Wire up client-side fallback so dealer-CDN 404s swap to the next photo.
+install_image_fallback_shim()
 
 
 # URL params ↔ filter state.
