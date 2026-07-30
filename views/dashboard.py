@@ -5,7 +5,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from lib import auth, db, scoring, styles
+from lib import auth, crawler, db, scoring, styles
 from lib.icons import icon
 from lib.ui import money
 
@@ -19,6 +19,62 @@ new_requests = db.count_inquiries("New")
 if new_requests:
     st.info(f":material/inbox: You have **{new_requests}** new customer request(s) — "
             "review them on the **Requests** page.")
+
+# ---------------------------------------------------------------- refresh CTA
+# One-click sync of every enabled crawl source. Static-mode only (no headless
+# toggle) because Playwright doesn't run in the Fly container — for headless
+# crawls, go to Admin → Sources and enable the deep-crawl toggle there.
+_sdf = db.fetch_crawl_sources_df()
+_enabled = _sdf[_sdf["enabled"] == 1] if not _sdf.empty else _sdf
+_runs = db.fetch_crawl_runs_df(limit=1) if not _sdf.empty else None
+_last = _runs.iloc[0] if (_runs is not None and not _runs.empty) else None
+_meta_bits = [f"{len(_enabled)} enabled source(s)"]
+if _last is not None:
+    when = pd.to_datetime(_last["finished_at"], errors="coerce")
+    if pd.notna(when):
+        _meta_bits.append(f"last synced {when.strftime('%b %-d, %H:%M')}")
+_meta_line = " · ".join(_meta_bits)
+
+with st.container(border=True, key="dash_sync_card"):
+    lc, rc = st.columns([5, 2], vertical_alignment="center")
+    with lc:
+        st.markdown(
+            f"<div style='display:flex;align-items:center;gap:14px;'>"
+            f"<div style='width:44px;height:44px;border-radius:12px;background:#eef4ff;"
+            f"border:1px solid #d8e6fb;display:flex;align-items:center;justify-content:center;'>"
+            f"{icon('refresh', 22, '#2E8BFF')}</div>"
+            f"<div><div style='font-size:15px;font-weight:750;color:var(--ll-ink)'>"
+            f"Refresh inventory</div>"
+            f"<div style='font-size:12.5px;color:#6b7686;margin-top:2px'>{_meta_line}</div>"
+            f"</div></div>",
+            unsafe_allow_html=True,
+        )
+    with rc:
+        sync_clicked = st.button(
+            "Sync all sources", type="primary", width="stretch",
+            icon=":material/refresh:", key="dash_sync_all",
+            disabled=not auth.CRAWLER_ENABLED or _enabled.empty,
+        )
+    if sync_clicked:
+        totals = {"new": 0, "updated": 0, "pages": 0, "errors": []}
+        with st.spinner("Crawling all enabled sources…"):
+            for _, r in _enabled.iterrows():
+                res = crawler.crawl_source(int(r["id"]))
+                if res.status == "ok":
+                    totals["new"] += res.new_listings
+                    totals["updated"] += res.updated_listings
+                    totals["pages"] += res.fetched_pages
+                else:
+                    totals["errors"].append(f"{r['name']}: {res.error}")
+        if totals["errors"]:
+            st.error("Some sources failed:\n\n- " + "\n- ".join(totals["errors"]))
+        else:
+            st.success(
+                f"Synced {len(_enabled)} source(s): "
+                f"{totals['new']} new, {totals['updated']} updated "
+                f"({totals['pages']} pages fetched)."
+            )
+        st.rerun()
 
 df = scoring.enrich(db.fetch_df(active_only=False))
 if df.empty:

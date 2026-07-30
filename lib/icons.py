@@ -99,6 +99,12 @@ _ICONS = {
         "<path d='M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z'/>"
         "<circle cx='16.5' cy='7.5' r='.5' fill='currentColor'/>"
     ),
+    "refresh": (
+        "<polyline points='23 4 23 10 17 10'/>"
+        "<polyline points='1 20 1 14 7 14'/>"
+        "<path d='M3.51 9a9 9 0 0 1 14.85-3.36L23 10'/>"
+        "<path d='M20.49 15a9 9 0 0 1-14.85 3.36L1 14'/>"
+    ),
 }
 
 # Friendly aliases so call sites read clearly.
