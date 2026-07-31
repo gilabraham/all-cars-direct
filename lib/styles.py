@@ -148,13 +148,16 @@ section[data-testid="stSidebar"] { padding-top: 80px; }
   .ll-nav-cta { padding: 7px 12px; }
 }
 
-/* Admin sub-nav (only shown on admin pages) */
+/* Admin sub-nav — top "ADMIN" pill label. Tab links themselves are rendered
+   as st.page_link inside .st-key-ll_admin_subnav_row so navigation runs
+   through Streamlit's in-app router and admin session state survives
+   tab switches. */
 .ll-subnav { display:flex; align-items:center; gap:12px; background:#eef1f8;
-  border:1px solid var(--ll-border); border-radius:12px; padding:8px 14px;
-  margin: 0 0 18px; flex-wrap:wrap; }
+  border:1px solid var(--ll-border); border-top-left-radius:12px;
+  border-top-right-radius:12px; border-bottom:none; padding:8px 14px;
+  margin: 0; flex-wrap:wrap; }
 .ll-subnav-label { font-size:11px; font-weight:800; letter-spacing:.9px; color:#9aa3b2;
   text-transform:uppercase; }
-.ll-subnav nav { display:flex; gap:4px; flex-wrap:wrap; }
 .ll-subnav .ll-subnavlink,
 .ll-subnav .ll-subnavlink:link,
 .ll-subnav .ll-subnavlink:visited {
@@ -162,9 +165,44 @@ section[data-testid="stSidebar"] { padding-top: 80px; }
   font-size:13px; padding:6px 12px; border-radius:8px; text-transform:uppercase;
   letter-spacing:.4px; transition: color .15s, background .15s;
   cursor: pointer; user-select: none; }
-.ll-subnav .ll-subnavlink:hover { color: var(--ll-ink) !important; background:#ffffff; }
-.ll-subnav .ll-subnavlink.active { color:#fff !important; background:var(--ll-primary); }
 .ll-subnav .ll-subnavlink.ll-logout { color:#dc2626 !important; }
+
+/* Restyle the st.page_link row so it visually merges with the .ll-subnav
+   pill above it — same background, same border, no vertical gap. */
+.st-key-ll_admin_subnav_row {
+  background:#eef1f8;
+  border:1px solid var(--ll-border); border-top:none;
+  border-bottom-left-radius:12px; border-bottom-right-radius:12px;
+  padding:6px 10px 8px; margin: 0 0 18px;
+}
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a {
+  display:flex; align-items:center; justify-content:center;
+  padding:8px 12px !important; border-radius:8px !important;
+  background:transparent !important; color: var(--ll-muted) !important;
+  text-decoration:none !important; border:none !important;
+  font-size:12.5px !important; font-weight:700 !important;
+  text-transform:uppercase; letter-spacing:.4px;
+  transition: color .15s, background .15s;
+}
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a:hover {
+  background:#ffffff !important; color: var(--ll-ink) !important;
+}
+/* Active state: Streamlit adds aria-current="page" to the link for the
+   currently-rendered page. */
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a[aria-current="page"] {
+  background: var(--ll-primary) !important; color:#ffffff !important;
+}
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a[aria-current="page"] * {
+  color:#ffffff !important;
+}
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] svg { display:none; }
+.st-key-ll_admin_subnav_row .ll-subnavlink.ll-logout {
+  display:flex; align-items:center; justify-content:center; height:100%;
+  padding:8px 12px; border-radius:8px;
+}
+.st-key-ll_admin_subnav_row .ll-subnavlink.ll-logout:hover {
+  background:#ffffff !important;
+}
 
 /* Sidebar brand */
 .ll-brand { display:flex; align-items:center; gap:8px; font-weight:800; font-size:18px;
@@ -1422,22 +1460,48 @@ def asection(label: str, icon_name: str = "", color: str = "#2E8BFF"):
 
 
 def admin_subnav(active_path: str = ""):
-    """Secondary nav shown only on admin pages (back-office navigation)."""
+    """Secondary nav shown only on admin pages (back-office navigation).
+
+    Uses ``st.page_link`` for tab links so navigation happens through
+    Streamlit's in-app JS router instead of a full-page reload. Full
+    reloads via raw ``<a href>`` tags dropped the WebSocket session on
+    Fly and forced the admin login gate to re-appear on every tab
+    switch. Log-out stays as a raw anchor because it intentionally
+    reloads the page with ``?logout=1``.
+    """
     from .auth import DISABLE_AUTH
 
     admin = [("admin", "Dashboard"), ("admin-requests", "Requests"),
              ("admin-listings", "Manage"), ("admin-upload", "Upload"),
              ("admin-sources", "Sources")]
+    path_to_view = {
+        "admin": "views/dashboard.py",
+        "admin-requests": "views/requests.py",
+        "admin-listings": "views/manage.py",
+        "admin-upload": "views/upload.py",
+        "admin-sources": "views/sources.py",
+    }
 
-    items = ""
-    for path, label in admin:
-        cls = "ll-subnavlink active" if path == active_path else "ll-subnavlink"
-        items += f"<a class='{cls}' href='/{path}' target='_self'>{label}</a>"
-    if not DISABLE_AUTH:
-        items += "<a class='ll-subnavlink ll-logout' href='/?logout=1' target='_self'>Log out</a>"
-
-    html = (
-        f"<div class='ll-subnav'><span class='ll-subnav-label'>ADMIN</span>"
-        f"<nav>{items}</nav></div>"
+    st.markdown(
+        "<div class='ll-subnav'><span class='ll-subnav-label'>ADMIN</span></div>",
+        unsafe_allow_html=True,
     )
-    st.markdown(html, unsafe_allow_html=True)
+    with st.container(key="ll_admin_subnav_row"):
+        cols = st.columns(len(admin) + (0 if DISABLE_AUTH else 1),
+                          gap="small", vertical_alignment="center")
+        for col, (path, label) in zip(cols, admin):
+            with col:
+                st.page_link(
+                    path_to_view[path],
+                    label=label,
+                    use_container_width=True,
+                )
+        if not DISABLE_AUTH:
+            with cols[-1]:
+                # Full page reload is desired for logout — it clears session
+                # state via the ``?logout=1`` handler in streamlit_app.py.
+                st.markdown(
+                    "<a class='ll-subnavlink ll-logout' href='/?logout=1' "
+                    "target='_self'>Log out</a>",
+                    unsafe_allow_html=True,
+                )
