@@ -1072,9 +1072,26 @@ footer {visibility:hidden;}
 }
 .ll-tile { min-width: 0; }
 
-/* Top deals row — cap width and center within the page. */
+/* Top deals row — cap width and center within the page. Wider than the
+   body-style tile grid because 4 cards need more horizontal room than 7
+   tiles to stay legible. */
 .st-key-home_top_deals {
-  max-width: 1080px; margin: 0 auto 14px;
+  max-width: 1240px; margin: 0 auto 14px;
+}
+/* Streamlit's stColumn only stretches its children if the column itself
+   has a definite height. Force full-height flex on every column inside
+   the top-deals row so cards line up regardless of content differences
+   (e.g. two-line titles vs one-line titles). */
+.st-key-home_top_deals [data-testid="stColumn"] {
+  display: flex; flex-direction: column;
+}
+.st-key-home_top_deals [data-testid="stColumn"] > div[data-testid="stVerticalBlock"] {
+  flex: 1; height: auto;
+}
+/* Pin the View-details button to the bottom edge — margin-top:auto on the
+   button's own wrapper eats whatever slack the body left. */
+.st-key-home_top_deals [class*="home_cardwrap_"] [data-testid="stButton"] {
+  margin-top: auto !important;
 }
 .ll-tile {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
