@@ -175,30 +175,62 @@ section[data-testid="stSidebar"] { padding-top: 80px; }
   border-bottom-left-radius:12px; border-bottom-right-radius:12px;
   padding:6px 10px 8px; margin: 0 0 18px;
 }
-.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a {
-  display:flex; align-items:center; justify-content:center;
+/* Cover all the shapes Streamlit's page_link + anchor descendants can take
+   (versions differ on span vs p vs raw text inside <a>). Setting !important
+   on both the anchor and its descendants stops Streamlit's global anchor
+   underline + link-blue color from reappearing. */
+.st-key-ll_admin_subnav_row [data-testid="stPageLink-NavLink"],
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a,
+.st-key-ll_admin_subnav_row a[data-testid="stPageLink"] {
+  display:flex !important; align-items:center; justify-content:center;
   padding:8px 12px !important; border-radius:8px !important;
-  background:transparent !important; color: var(--ll-muted) !important;
+  background:transparent !important;
   text-decoration:none !important; border:none !important;
+  transition: color .15s, background .15s;
+  min-height: 36px;
+}
+.st-key-ll_admin_subnav_row [data-testid="stPageLink-NavLink"] *,
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a * {
+  color: var(--ll-muted) !important;
   font-size:12.5px !important; font-weight:700 !important;
   text-transform:uppercase; letter-spacing:.4px;
-  transition: color .15s, background .15s;
+  text-decoration:none !important;
 }
+.st-key-ll_admin_subnav_row [data-testid="stPageLink-NavLink"]:hover,
 .st-key-ll_admin_subnav_row [data-testid="stPageLink"] a:hover {
-  background:#ffffff !important; color: var(--ll-ink) !important;
+  background:#ffffff !important;
 }
-/* Active state: Streamlit adds aria-current="page" to the link for the
-   currently-rendered page. */
-.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a[aria-current="page"] {
-  background: var(--ll-primary) !important; color:#ffffff !important;
+.st-key-ll_admin_subnav_row [data-testid="stPageLink-NavLink"]:hover *,
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a:hover * {
+  color: var(--ll-ink) !important;
 }
-.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a[aria-current="page"] * {
-  color:#ffffff !important;
+/* Active state — Streamlit marks the current page's link with the class
+   "active" and/or aria-current="page" depending on version. Cover both. */
+.st-key-ll_admin_subnav_row [data-testid="stPageLink-NavLink"].active,
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a[aria-current="page"],
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a.active {
+  background: var(--ll-primary) !important;
 }
-.st-key-ll_admin_subnav_row [data-testid="stPageLink"] svg { display:none; }
-.st-key-ll_admin_subnav_row .ll-subnavlink.ll-logout {
-  display:flex; align-items:center; justify-content:center; height:100%;
+.st-key-ll_admin_subnav_row [data-testid="stPageLink-NavLink"].active *,
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a[aria-current="page"] *,
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] a.active * {
+  color: #ffffff !important;
+}
+.st-key-ll_admin_subnav_row [data-testid="stPageLink"] svg,
+.st-key-ll_admin_subnav_row [data-testid="stPageLink-NavLink"] svg { display:none; }
+
+/* Log-out link — raw anchor, needs its own underline-kill and pill style
+   since it isn't wrapped in a stPageLink. */
+.st-key-ll_admin_subnav_row .ll-subnavlink.ll-logout,
+.st-key-ll_admin_subnav_row .ll-subnavlink.ll-logout:link,
+.st-key-ll_admin_subnav_row .ll-subnavlink.ll-logout:visited {
+  display:flex; align-items:center; justify-content:center; min-height:36px;
   padding:8px 12px; border-radius:8px;
+  background: transparent !important;
+  color:#dc2626 !important;
+  text-decoration:none !important; border-bottom:none !important;
+  font-size:12.5px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.4px;
 }
 .st-key-ll_admin_subnav_row .ll-subnavlink.ll-logout:hover {
   background:#ffffff !important;
