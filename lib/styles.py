@@ -1153,10 +1153,13 @@ footer {visibility:hidden;}
   margin: 18px 0 0; font-size: 13px; color: #b3c0d4; font-weight: 600;
 }
 .ll-snd-feat { display: inline-flex; align-items: center; gap: 6px; }
-.ll-snd-cta {
+.ll-snd-cta,
+.ll-snd-cta:hover,
+.ll-snd-cta:visited {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 14px 24px; border-radius: 999px;
-  background: #2E8BFF; color: #fff !important; text-decoration: none;
+  background: #2E8BFF; color: #fff !important;
+  text-decoration: none !important; border-bottom: none !important;
   font-weight: 700; font-size: 14px; white-space: nowrap;
   box-shadow: 0 8px 24px -8px rgba(46, 139, 255, 0.65);
   transition: transform .15s ease, box-shadow .15s ease;
