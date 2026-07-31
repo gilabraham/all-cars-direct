@@ -1056,12 +1056,21 @@ footer {visibility:hidden;}
   letter-spacing: -0.3px; text-align: center;
 }
 
+/* Auto-fit grid so 7 body-style tiles land on a single row at desktop widths,
+   wrap to 4-across on medium viewports, and 2-across on phones. minmax
+   ensures every tile is at least 140px so labels don't crush. */
 .ll-tiles {
-  display: flex; flex-wrap: wrap; gap: 14px;
-  justify-content: center;
-  max-width: 1080px; margin: 0 auto 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  max-width: 1200px; margin: 0 auto 28px;
 }
-.ll-tile { flex: 0 0 160px; }
+@media (max-width: 1100px) {
+  /* Force a clean 4-column layout on medium screens so 7 tiles land as
+     4+3 rather than an uneven 5+2 or 6+1. */
+  .ll-tiles { grid-template-columns: repeat(4, 1fr); max-width: 780px; }
+}
+.ll-tile { min-width: 0; }
 
 /* Top deals row — cap width and center within the page. */
 .st-key-home_top_deals {
@@ -1295,8 +1304,9 @@ footer {visibility:hidden;}
   .ll-hiw-cta h2 { font-size: 20px; }
   /* Section headings tighter on mobile so they don't feel oversized */
   .ll-home-h { font-size: 22px; margin: 28px 0 14px; }
-  /* Tile cells shrink so 2 fit per row on a 350px viewport */
-  .ll-tile { flex: 0 0 calc(50% - 7px); min-width: 0; }
+  /* Two-tile grid on phones — override the desktop auto-fit so labels
+     don't get too small at 350px viewports. */
+  .ll-tiles { grid-template-columns: repeat(2, 1fr); max-width: none; }
   .ll-tile-ic { height: 60px; }
 }
 @media (max-width: 380px) {
